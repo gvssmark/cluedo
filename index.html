@@ -66,7 +66,6 @@
     text-transform:uppercase; opacity:.85; white-space:nowrap;
   }
 
-  /* Drawer / hamburger menu */
   .overlay{
     position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:40;
     opacity:0; pointer-events:none; transition:opacity .2s ease;
@@ -102,6 +101,9 @@
   }
   .panel h2{ font-size:16px; color:var(--brass-bright); border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
   .panel h2 .num{ font-family:'Courier New',monospace; font-size:12px; color:var(--parchment-dim); border:1px solid var(--line); border-radius:50%; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .panel h2.clickable{ cursor:pointer; user-select:none; }
+  .panel h2 .chev{ margin-left:auto; font-family:'Courier New',monospace; font-size:13px; color:var(--parchment-dim); transition:transform .2s ease; }
+  .panel h2.collapsed .chev{ transform:rotate(-90deg); }
 
   .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
   label{ font-size:11.5px; color:var(--parchment-dim); font-family:'Courier New',monospace; text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:4px;}
@@ -123,6 +125,7 @@
   button.danger:hover{ background:var(--red-bright); }
   button.block{ width:100%; }
   button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.small{ padding:6px 10px; font-size:11px; }
 
   .players-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
   .player-row{ display:flex; gap:8px; align-items:center; background:#111823; border:1px solid var(--line); border-radius:4px; padding:6px 8px; flex-wrap:wrap; }
@@ -135,8 +138,10 @@
   .cat-block h3{ font-size:12.5px; color:var(--brass-bright); font-family:'Courier New',monospace; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; border-bottom:1px dashed var(--line); padding-bottom:4px;}
   .card-check{ display:flex; align-items:center; gap:7px; padding:4px 0; font-size:14px; }
   .card-check input{ accent-color:var(--brass); width:16px; height:16px; flex-shrink:0; }
+  .card-check.disabled{ opacity:.35; }
+  .cards-counter{ font-family:'Courier New',monospace; font-size:12px; color:var(--brass-bright); margin-bottom:10px; }
+  .cards-counter.over{ color:var(--red-bright); }
 
-  /* Deduction grid */
   .table-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:6px; -webkit-overflow-scrolling:touch; }
   table.grid{ border-collapse:collapse; width:100%; font-family:'Courier New',monospace; font-size:12.5px; min-width:560px; }
   table.grid th, table.grid td{ border:1px solid var(--line); padding:0; text-align:center; }
@@ -166,11 +171,36 @@
   .sol-card .answer.unsolved{ color:var(--parchment-dim); font-weight:normal; font-size:12.5px; }
   .sol-card ul{ margin:6px 0 0; padding-left:16px; font-size:11.5px; color:var(--parchment-dim); }
 
+  .turn-banner{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    background:#111823; border:1px solid var(--brass); border-radius:6px; padding:10px 14px; margin-bottom:14px;
+  }
+  .turn-banner .who{ font-size:15px; color:var(--brass-bright); }
+  .turn-banner .who b{ color:var(--parchment); }
+  .turn-banner .dir{ font-family:'Courier New',monospace; font-size:11px; color:var(--parchment-dim); }
+
   .sugg-form{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:14px;}
   .sugg-form .field{ display:flex; flex-direction:column; }
-  .checks-row{ display:flex; flex-wrap:wrap; gap:10px 16px; margin:8px 0; }
-  .checks-row label.inline{ display:flex; align-items:center; gap:5px; font-family:Georgia,serif; text-transform:none; font-size:13.5px; color:var(--parchment); letter-spacing:0; }
-  .checks-row input[type=checkbox]{ accent-color:var(--brass); width:16px; height:16px; }
+
+  .sequence-wrap{ margin-top:12px; }
+  .seq-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    background:#111823; border:1px solid var(--line); border-radius:5px; padding:8px 12px; margin-bottom:6px;
+  }
+  .seq-row.active{ border-color:var(--brass); box-shadow: 0 0 0 1px var(--brass); }
+  .seq-row.pending{ opacity:.5; }
+  .seq-row .seq-name{ font-size:14px; }
+  .seq-row .seq-actions{ display:flex; gap:8px; }
+  .seq-badge{ font-family:'Courier New',monospace; font-size:11px; padding:3px 8px; border-radius:3px; }
+  .seq-badge.passed{ background:rgba(154,59,59,.2); color:var(--red-bright); }
+  .seq-badge.shown{ background:rgba(74,122,88,.25); color:var(--green-bright); }
+  .seq-badge.pending-badge{ background:#232f3e; color:var(--parchment-dim); }
+
+  .known-card-box{ background:#111823; border:1px solid var(--brass); border-radius:6px; padding:10px 12px; margin-top:10px; display:none; }
+  .known-card-box.show{ display:block; }
+  .known-card-box label.inline{ display:flex; align-items:center; gap:6px; font-family:Georgia,serif; text-transform:none; font-size:13.5px; color:var(--parchment); letter-spacing:0; margin-bottom:0; }
+  .known-card-box select{ margin-top:8px; display:none; }
+  .known-card-box select.show{ display:block; }
 
   .log-list{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
   .log-entry{ background:#111823; border:1px solid var(--line); border-radius:4px; padding:8px 12px; font-size:12.5px; display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; }
@@ -201,7 +231,7 @@
   footer{ text-align:center; color:var(--parchment-dim); font-size:11px; font-family:'Courier New',monospace; margin-top:26px; opacity:.6;}
 
   @media (min-width:640px){
-    .sugg-form{ grid-template-columns:repeat(4,1fr); }
+    .sugg-form{ grid-template-columns:repeat(3,1fr); }
     h1{ font-size:28px; }
   }
   @media (max-width: 480px){
@@ -228,11 +258,16 @@
 
   <div id="conflictBanner"></div>
 
-  <!-- MAIN CONTENT -->
-
   <!-- SUGGESTION LOG -->
   <section class="panel">
     <h2><span class="num">1</span> Log a Suggestion</h2>
+
+    <div class="turn-banner">
+      <div class="who">Turn: <b id="turnWho">—</b></div>
+      <div class="dir" id="turnDir"></div>
+      <button class="secondary small" id="skipTurnBtn">Skip turn (no suggestion)</button>
+    </div>
+
     <div class="sugg-form" id="suggForm">
       <div class="field">
         <label>Suggesting player</label>
@@ -251,24 +286,20 @@
         <select id="sgRoom"></select>
       </div>
     </div>
-    <label>Players who were asked and passed (showed nothing) — everyone except the suggester</label>
-    <div class="checks-row" id="sgPassed"></div>
 
-    <div class="row">
-      <div class="field" style="flex:1; min-width:180px;">
-        <label>Player who showed a card (if any)</label>
-        <select id="sgShower"><option value="">— No one showed —</option></select>
-      </div>
-      <div class="field" id="sgKnownWrap" style="display:none; flex:1; min-width:180px;">
-        <label class="inline"><input type="checkbox" id="sgKnownToggle"> I know which card was shown</label>
-        <select id="sgKnownCard" style="margin-top:6px; display:none;"></select>
-      </div>
+    <label>Asking around the table (in seating order)</label>
+    <div class="sequence-wrap" id="sequenceWrap"></div>
+
+    <div class="known-card-box" id="knownCardBox">
+      <label class="inline"><input type="checkbox" id="sgKnownToggle"> I know which card <span id="knownShowerName"></span> showed</label>
+      <select id="sgKnownCard"></select>
     </div>
 
     <div id="sgWarning" class="warning-box"></div>
 
-    <div style="margin-top:12px;">
-      <button id="sgSubmit" class="block">Add to case log</button>
+    <div class="row" style="margin-top:12px;">
+      <button class="secondary small" id="restartRoundBtn">Restart this round</button>
+      <button id="sgSubmit" style="flex:1;" disabled>Add to case log</button>
     </div>
 
     <div class="log-list" id="logList"></div>
@@ -276,17 +307,19 @@
 
   <!-- DEDUCTION GRID -->
   <section class="panel">
-    <h2><span class="num">2</span> Deduction Grid</h2>
-    <div class="empty-note" style="margin-bottom:10px;">Tap any cell to add a manual note (cycles Unknown → Held → Not Held). Gold outline = manually set.</div>
-    <div class="table-scroll">
-      <table class="grid" id="grid"></table>
-    </div>
-    <div class="legend">
-      <div><span class="sw" style="background:rgba(74,122,88,.35);border:1px solid var(--green-bright);"></span>Holds card</div>
-      <div><span class="sw" style="background:rgba(154,59,59,.22);border:1px solid var(--red-bright);"></span>Does not hold</div>
-      <div><span class="sw" style="background:#1b2430;border:1px solid #465066;"></span>Unknown</div>
-      <div><span class="sw" style="background:var(--green);border:1px solid var(--green-bright);"></span>Solved</div>
-      <div><span class="sw" style="background:#1b2430;border:2px solid var(--brass);"></span>Manual</div>
+    <h2 class="clickable" id="gridToggleHead"><span class="num">2</span> Deduction Grid <span class="chev">▾</span></h2>
+    <div id="gridBody">
+      <div class="empty-note" style="margin-bottom:10px;">Tap any cell to add a manual note (cycles Unknown → Held → Not Held). Gold outline = manually set.</div>
+      <div class="table-scroll">
+        <table class="grid" id="grid"></table>
+      </div>
+      <div class="legend">
+        <div><span class="sw" style="background:rgba(74,122,88,.35);border:1px solid var(--green-bright);"></span>Holds card</div>
+        <div><span class="sw" style="background:rgba(154,59,59,.22);border:1px solid var(--red-bright);"></span>Does not hold</div>
+        <div><span class="sw" style="background:#1b2430;border:1px solid #465066;"></span>Unknown</div>
+        <div><span class="sw" style="background:var(--green);border:1px solid var(--green-bright);"></span>Solved</div>
+        <div><span class="sw" style="background:#1b2430;border:2px solid var(--brass);"></span>Manual</div>
+      </div>
     </div>
   </section>
 
@@ -299,7 +332,6 @@
   <footer>Deductions update automatically from your cards, shown cards, passes, and logged suggestions. Data is saved locally on this device only.</footer>
 </div>
 
-<!-- HAMBURGER DRAWER -->
 <div class="overlay" id="overlay"></div>
 <nav class="drawer" id="drawer" aria-label="Setup menu">
   <div class="drawer-head">
@@ -312,8 +344,16 @@
     </div>
 
     <div class="drawer-section">
-      <h3>① Number of Players</h3>
+      <h3>① Players &amp; Turn Order</h3>
+      <label>Number of players</label>
       <select id="numPlayers"></select>
+      <div style="height:10px;"></div>
+      <label>Play direction</label>
+      <select id="direction">
+        <option value="cw">Clockwise (Player 1 → 2 → 3 → …)</option>
+        <option value="ccw">Anti-clockwise (Player 1 → last → …)</option>
+      </select>
+      <div class="empty-note" style="margin-top:6px;">This follows the seating order in the names list below.</div>
     </div>
 
     <div class="drawer-section">
@@ -325,6 +365,7 @@
 
     <div class="drawer-section">
       <h3>③ My Cards</h3>
+      <div class="cards-counter" id="cardsCounter"></div>
       <div class="cards-grid" id="myCardsGrid"></div>
     </div>
 
@@ -339,7 +380,6 @@
 (function(){
   "use strict";
 
-  // ---------- Static card data ----------
   const SUSPECTS = ["Miss Scarlett","Colonel Mustard","Mrs White","Reverend Green","Mrs Peacock","Professor Plum"];
   const WEAPONS  = ["Candlestick","Knife","Lead Pipe","Revolver","Rope","Wrench"];
   const ROOMS    = ["Kitchen","Ballroom","Conservatory","Dining Room","Billiard Room","Library","Lounge","Hall","Study"];
@@ -349,31 +389,37 @@
     {key:"room",    label:"Rooms",    cards:ROOMS}
   ];
   const ALL_CARDS = SUSPECTS.concat(WEAPONS, ROOMS);
-  const CATEGORY_OF = {};
-  CATEGORIES.forEach(c => c.cards.forEach(card => CATEGORY_OF[card] = c.key));
   const CASE = "__case__";
-  const STORAGE_KEY = "cluedo_case_state_v1";
+  const STORAGE_KEY = "cluedo_case_state_v2";
 
-  // ---------- State ----------
   const isFirstRun = !localStorage.getItem(STORAGE_KEY);
 
   const DEFAULT_STATE = {
     numPlayers: 4,
     players: [],
     me: 0,
+    direction: "cw",
+    currentTurn: 0,
     myCards: [],
     manual: {},
-    log: []
+    log: [],
+    gridCollapsed: false
   };
 
   let state = loadState();
+  let seq = null; // transient in-progress suggestion sequence (not persisted)
 
   function loadState(){
     try{
       const raw = localStorage.getItem(STORAGE_KEY);
       if(raw){
         const parsed = JSON.parse(raw);
-        if(parsed && parsed.players && parsed.players.length) return parsed;
+        if(parsed && parsed.players && parsed.players.length){
+          if(parsed.direction === undefined) parsed.direction = "cw";
+          if(parsed.currentTurn === undefined) parsed.currentTurn = 0;
+          if(parsed.gridCollapsed === undefined) parsed.gridCollapsed = false;
+          return parsed;
+        }
       }
     }catch(e){}
     return freshState(4);
@@ -406,7 +452,24 @@
     return state.players[col] ? state.players[col].name : ("Player "+(col+1));
   }
 
-  // ---------- Hamburger drawer ----------
+  function nextIdx(idx){
+    const n = state.players.length;
+    return state.direction === "cw" ? (idx+1)%n : (idx-1+n)%n;
+  }
+
+  function askOrder(suggesterIdx){
+    const order = [];
+    let cur = nextIdx(suggesterIdx);
+    let guard = 0;
+    while(cur !== suggesterIdx && guard < 50){
+      order.push(cur);
+      cur = nextIdx(cur);
+      guard++;
+    }
+    return order;
+  }
+
+  // ---------- Drawer ----------
   const drawer = document.getElementById("drawer");
   const overlay = document.getElementById("overlay");
   function openDrawer(){ drawer.classList.add("open"); overlay.classList.add("open"); }
@@ -414,13 +477,26 @@
   document.getElementById("hamburgerBtn").addEventListener("click", openDrawer);
   document.getElementById("drawerClose").addEventListener("click", closeDrawer);
   overlay.addEventListener("click", closeDrawer);
-
   if(isFirstRun){
     document.getElementById("firstRunHint").style.display = "block";
     openDrawer();
   }
 
-  // ---------- Setup: number of players ----------
+  // ---------- Grid collapse ----------
+  const gridToggleHead = document.getElementById("gridToggleHead");
+  const gridBody = document.getElementById("gridBody");
+  function applyGridCollapse(){
+    gridBody.style.display = state.gridCollapsed ? "none" : "block";
+    gridToggleHead.classList.toggle("collapsed", state.gridCollapsed);
+  }
+  gridToggleHead.addEventListener("click", () => {
+    state.gridCollapsed = !state.gridCollapsed;
+    saveState();
+    applyGridCollapse();
+  });
+  applyGridCollapse();
+
+  // ---------- Number of players ----------
   const numPlayersSel = document.getElementById("numPlayers");
   for(let n=3;n<=6;n++){
     const o = document.createElement("option");
@@ -439,23 +515,33 @@
     }
     state.players = fresh;
     if(state.me >= n) state.me = 0;
+    if(state.currentTurn >= n) state.currentTurn = 0;
     state.log = state.log.filter(e => e.suggester < n && (e.shower===null || e.shower < n) && e.passed.every(p=>p<n));
     Object.keys(state.manual).forEach(k=>{
-      const col = k.split("|")[1];
+      const idxSep = k.lastIndexOf("|");
+      const col = k.substring(idxSep+1);
       if(col !== CASE && parseInt(col,10) >= n) delete state.manual[k];
     });
     saveState();
-    renderAll();
+    renderAll({ forceResetSequence:true });
+  });
+
+  const directionSel = document.getElementById("direction");
+  directionSel.value = state.direction;
+  directionSel.addEventListener("change", () => {
+    state.direction = directionSel.value;
+    saveState();
+    renderAll({ rebuildRoster:false, forceResetSequence:true });
   });
 
   document.getElementById("recomputeHands").addEventListener("click", () => {
     const fresh = buildDefaultPlayers(state.players.length);
     state.players.forEach((p,i)=> p.handSize = fresh[i].handSize);
     saveState();
-    renderAll(false);
+    renderAll({ rebuildRoster:false });
   });
 
-  // ---------- Players list render ----------
+  // ---------- Players list ----------
   function renderPlayersList(){
     const wrap = document.getElementById("playersList");
     wrap.innerHTML = "";
@@ -466,7 +552,11 @@
       const nameInput = document.createElement("input");
       nameInput.type = "text";
       nameInput.value = p.name;
-      nameInput.addEventListener("input", () => { p.name = nameInput.value || ("Player "+(idx+1)); saveState(); renderAll(false); });
+      nameInput.addEventListener("input", () => {
+        p.name = nameInput.value || ("Player "+(idx+1));
+        saveState();
+        renderAll({ rebuildRoster:false, skipPlayersList:true });
+      });
       row.appendChild(nameInput);
 
       const hsLabel = document.createElement("label");
@@ -479,7 +569,11 @@
       hsInput.type = "number"; hsInput.min="0"; hsInput.max="21";
       hsInput.className = "hs-box";
       hsInput.value = p.handSize;
-      hsInput.addEventListener("input", () => { p.handSize = parseInt(hsInput.value,10)||0; saveState(); renderAll(false); });
+      hsInput.addEventListener("input", () => {
+        p.handSize = parseInt(hsInput.value,10)||0;
+        saveState();
+        renderAll({ rebuildRoster:false, skipPlayersList:true });
+      });
       row.appendChild(hsInput);
 
       const meBtn = document.createElement("button");
@@ -492,25 +586,42 @@
     });
   }
 
-  // ---------- My cards ----------
+  // ---------- My cards (limited to hand size) ----------
   function renderMyCards(){
     const grid = document.getElementById("myCardsGrid");
     grid.innerHTML = "";
+    const meHandSize = state.players[state.me] ? state.players[state.me].handSize : 0;
+    const counterEl = document.getElementById("cardsCounter");
+    const overLimit = state.myCards.length > meHandSize;
+    counterEl.textContent = state.myCards.length + " of " + meHandSize + " cards selected" + (overLimit ? "  — you have more checked than your hand size!" : "");
+    counterEl.className = "cards-counter" + (overLimit ? " over" : "");
+
+    const atLimit = state.myCards.length >= meHandSize;
+
     CATEGORIES.forEach(cat => {
       const block = document.createElement("div");
       block.className = "cat-block";
       const h = document.createElement("h3"); h.textContent = cat.label;
       block.appendChild(h);
       cat.cards.forEach(card => {
+        const isChecked = state.myCards.includes(card);
         const row = document.createElement("div");
-        row.className = "card-check";
+        row.className = "card-check" + (!isChecked && atLimit ? " disabled" : "");
         const cb = document.createElement("input");
         cb.type = "checkbox";
-        cb.checked = state.myCards.includes(card);
+        cb.checked = isChecked;
+        if(!isChecked && atLimit) cb.disabled = true;
         cb.addEventListener("change", () => {
-          if(cb.checked){ if(!state.myCards.includes(card)) state.myCards.push(card); }
-          else { state.myCards = state.myCards.filter(c=>c!==card); }
-          saveState(); renderAll(false);
+          if(cb.checked){
+            if(state.myCards.length >= meHandSize){
+              cb.checked = false;
+              return;
+            }
+            if(!state.myCards.includes(card)) state.myCards.push(card);
+          } else {
+            state.myCards = state.myCards.filter(c=>c!==card);
+          }
+          saveState(); renderAll({ rebuildRoster:false, skipPlayersList:true });
         });
         const lbl = document.createElement("span");
         lbl.textContent = card;
@@ -521,33 +632,39 @@
     });
   }
 
-  // ---------- Suggestion form: static parts built once ----------
-  function fillCardSelect(sel, cards){
+  // ---------- Suggestion form static parts ----------
+  function fillCardSelect(sel, cards, preserveValue){
+    const prev = sel.value;
     sel.innerHTML = "";
     cards.forEach(c => {
       const o = document.createElement("option"); o.value = c; o.textContent = c;
       sel.appendChild(o);
     });
+    if(preserveValue && cards.includes(prev)) sel.value = prev;
   }
 
   const sgSuggesterSel = document.getElementById("sgSuggester");
   const sgSuspectSel = document.getElementById("sgSuspect");
   const sgWeaponSel = document.getElementById("sgWeapon");
   const sgRoomSel = document.getElementById("sgRoom");
-  const sgShowerSel = document.getElementById("sgShower");
-  const sgPassedWrap = document.getElementById("sgPassed");
+  const sequenceWrap = document.getElementById("sequenceWrap");
+  const knownCardBox = document.getElementById("knownCardBox");
   const sgKnownToggle = document.getElementById("sgKnownToggle");
   const sgKnownCardSel = document.getElementById("sgKnownCard");
-  const sgKnownWrap = document.getElementById("sgKnownWrap");
+  const knownShowerNameEl = document.getElementById("knownShowerName");
   const sgWarningBox = document.getElementById("sgWarning");
+  const sgSubmitBtn = document.getElementById("sgSubmit");
+  const turnWhoEl = document.getElementById("turnWho");
+  const turnDirEl = document.getElementById("turnDir");
 
   fillCardSelect(sgSuspectSel, SUSPECTS);
   fillCardSelect(sgWeaponSel, WEAPONS);
   fillCardSelect(sgRoomSel, ROOMS);
 
   function updateKnownCardOptions(){
-    fillCardSelect(sgKnownCardSel, [sgSuspectSel.value, sgWeaponSel.value, sgRoomSel.value]);
+    fillCardSelect(sgKnownCardSel, [sgSuspectSel.value, sgWeaponSel.value, sgRoomSel.value], true);
   }
+
   [sgSuspectSel, sgWeaponSel, sgRoomSel].forEach(sel=>{
     sel.addEventListener("change", () => {
       if(sgKnownToggle.checked) updateKnownCardOptions();
@@ -556,86 +673,158 @@
   });
 
   sgKnownToggle.addEventListener("change", function(){
-    sgKnownCardSel.style.display = this.checked ? "block" : "none";
+    sgKnownCardSel.classList.toggle("show", this.checked);
     if(this.checked) updateKnownCardOptions();
     validateForm();
   });
   sgKnownCardSel.addEventListener("change", validateForm);
 
-  sgShowerSel.addEventListener("change", () => {
-    sgKnownWrap.style.display = sgShowerSel.value === "" ? "none" : "flex";
-    if(sgShowerSel.value === ""){
-      sgKnownToggle.checked = false;
-      sgKnownCardSel.style.display = "none";
-    }
-    refreshPassedExclusion();
-    validateForm();
-  });
-
   sgSuggesterSel.addEventListener("change", () => {
-    refreshPassedExclusion();
-    refreshShowerExclusion();
-    validateForm();
+    renderAll({ rebuildRoster:false, forceResetSequence:true });
   });
 
-  // rebuild passed checkboxes / shower select whenever the player roster changes (name/count),
-  // while preserving current selections
+  document.getElementById("skipTurnBtn").addEventListener("click", () => {
+    state.currentTurn = nextIdx(state.currentTurn);
+    saveState();
+    renderAll({ rebuildRoster:true, forceResetSequence:true });
+  });
+
+  document.getElementById("restartRoundBtn").addEventListener("click", () => {
+    renderAll({ rebuildRoster:false, forceResetSequence:true });
+  });
+
   function renderSuggesterAndRoster(){
-    const prevSuggester = sgSuggesterSel.value;
+    // Always snaps the suggester to whoever's turn it currently is.
+    // (Manual overrides use relabelSuggesterOptions() instead, which never moves the selection.)
     sgSuggesterSel.innerHTML = "";
     state.players.forEach((p, idx) => {
       const o = document.createElement("option");
       o.value = idx; o.textContent = p.name + (idx===state.me ? " (me)" : "");
       sgSuggesterSel.appendChild(o);
     });
-    if(Array.from(sgSuggesterSel.options).some(o=>o.value===prevSuggester)) sgSuggesterSel.value = prevSuggester;
-
-    rebuildPassedCheckboxes();
-    rebuildShowerOptions();
+    sgSuggesterSel.value = String(state.currentTurn);
   }
 
-  function rebuildPassedCheckboxes(){
-    const prevChecked = new Set(Array.from(sgPassedWrap.querySelectorAll('input[type=checkbox]:checked')).map(cb=>cb.value));
-    sgPassedWrap.innerHTML = "";
-    const suggester = sgSuggesterSel.value;
-    state.players.forEach((p, idx) => {
-      if(String(idx) === suggester) return; // exclude suggester
-      const lab = document.createElement("label");
-      lab.className = "inline";
-      const cb = document.createElement("input");
-      cb.type = "checkbox"; cb.value = idx; cb.dataset.role="passed";
-      cb.checked = prevChecked.has(String(idx));
-      cb.addEventListener("change", validateForm);
-      lab.appendChild(cb);
-      lab.appendChild(document.createTextNode(p.name));
-      sgPassedWrap.appendChild(lab);
+  function relabelSuggesterOptions(){
+    Array.from(sgSuggesterSel.options).forEach(o => {
+      const idx = parseInt(o.value, 10);
+      if(state.players[idx]) o.textContent = state.players[idx].name + (idx===state.me ? " (me)" : "");
     });
   }
 
-  function rebuildShowerOptions(){
-    const prevVal = sgShowerSel.value;
-    sgShowerSel.innerHTML = "";
-    const blank = document.createElement("option"); blank.value=""; blank.textContent = "— No one showed —";
-    sgShowerSel.appendChild(blank);
-    const suggester = sgSuggesterSel.value;
-    state.players.forEach((p, idx) => {
-      if(String(idx) === suggester) return; // suggester can't show to self
-      const o = document.createElement("option");
-      o.value = idx; o.textContent = p.name + (idx===state.me ? " (me)" : "");
-      sgShowerSel.appendChild(o);
-    });
-    if(Array.from(sgShowerSel.options).some(o=>o.value===prevVal)) sgShowerSel.value = prevVal;
-    sgKnownWrap.style.display = sgShowerSel.value === "" ? "none" : "flex";
+  // ---------- Sequence (asking around the table) ----------
+  function resetSequence(){
+    const suggester = parseInt(sgSuggesterSel.value, 10) || 0;
+    seq = {
+      suggester: suggester,
+      order: askOrder(suggester),
+      statusList: [],
+      shower: null
+    };
+    seq.statusList = seq.order.map(()=>"pending");
+    sgKnownToggle.checked = false;
+    sgKnownCardSel.classList.remove("show");
+    clearWarning();
   }
 
-  function refreshPassedExclusion(){ rebuildPassedCheckboxes(); }
-  function refreshShowerExclusion(){ rebuildShowerOptions(); }
+  function currentPointer(){
+    if(!seq) return -1;
+    if(seq.shower !== null) return -1;
+    return seq.statusList.findIndex(s => s === "pending");
+  }
 
-  // ---------- Live validation / "already shown" flashing ----------
+  function markPassed(i){
+    if(!seq || seq.shower !== null) return;
+    if(i !== currentPointer()) return;
+    seq.statusList[i] = "passed";
+    renderSequence();
+  }
+
+  function markShown(i){
+    if(!seq || seq.shower !== null) return;
+    if(i !== currentPointer()) return;
+    seq.statusList[i] = "shown";
+    seq.shower = seq.order[i];
+    for(let j=i+1;j<seq.order.length;j++) seq.statusList[j] = "skipped";
+    renderSequence();
+  }
+
+  function isSequenceComplete(){
+    if(!seq) return false;
+    if(seq.order.length === 0) return true;
+    if(seq.shower !== null) return true;
+    return seq.statusList.every(s => s === "passed");
+  }
+
+  function renderSequence(){
+    sequenceWrap.innerHTML = "";
+    if(!seq){ sgSubmitBtn.disabled = true; return; }
+
+    if(seq.order.length === 0){
+      sequenceWrap.innerHTML = '<div class="empty-note">No other players to ask.</div>';
+    }
+
+    const pointer = currentPointer();
+    seq.order.forEach((pIdx, i) => {
+      const row = document.createElement("div");
+      const status = seq.statusList[i];
+      let rowClass = "seq-row";
+      if(seq.shower === null && i === pointer) rowClass += " active";
+      else if(status === "pending") rowClass += " pending";
+      row.className = rowClass;
+
+      const nameSpan = document.createElement("div");
+      nameSpan.className = "seq-name";
+      nameSpan.textContent = (i+1) + ". " + colName(pIdx) + (pIdx===state.me ? " (me)" : "");
+      row.appendChild(nameSpan);
+
+      if(seq.shower === null && i === pointer){
+        const actions = document.createElement("div");
+        actions.className = "seq-actions";
+        const passBtn = document.createElement("button");
+        passBtn.className = "secondary small";
+        passBtn.textContent = "Passed";
+        passBtn.addEventListener("click", () => markPassed(i));
+        const showBtn = document.createElement("button");
+        showBtn.className = "small";
+        showBtn.textContent = "Showed a card";
+        showBtn.addEventListener("click", () => markShown(i));
+        actions.appendChild(passBtn);
+        actions.appendChild(showBtn);
+        row.appendChild(actions);
+      } else {
+        const badge = document.createElement("span");
+        if(status === "passed"){ badge.className="seq-badge passed"; badge.textContent="Passed"; }
+        else if(status === "shown"){ badge.className="seq-badge shown"; badge.textContent="Showed a card"; }
+        else { badge.className="seq-badge pending-badge"; badge.textContent = (seq.shower!==null) ? "Not asked" : "Waiting…"; }
+        row.appendChild(badge);
+      }
+      sequenceWrap.appendChild(row);
+    });
+
+    if(seq.order.length > 0 && seq.shower === null && pointer === -1){
+      const doneNote = document.createElement("div");
+      doneNote.className = "empty-note";
+      doneNote.textContent = "Everyone passed — no one showed a card.";
+      sequenceWrap.appendChild(doneNote);
+    }
+
+    if(seq.shower !== null){
+      knownCardBox.classList.add("show");
+      knownShowerNameEl.textContent = colName(seq.shower);
+      updateKnownCardOptions();
+    } else {
+      knownCardBox.classList.remove("show");
+    }
+
+    sgSubmitBtn.disabled = !isSequenceComplete();
+    validateForm();
+  }
+
+  // ---------- Live validation ----------
   function showWarning(msg, kind){
     sgWarningBox.textContent = msg;
-    sgWarningBox.className = "warning-box show" + (kind==="notice" ? " notice" : "") ;
-    // retrigger flash animation
+    sgWarningBox.className = "warning-box show" + (kind==="notice" ? " notice" : "");
     sgWarningBox.classList.remove("flash-warn");
     void sgWarningBox.offsetWidth;
     sgWarningBox.classList.add("flash-warn");
@@ -645,36 +834,31 @@
     sgWarningBox.textContent = "";
   }
 
-  // returns {ok:boolean, message:string|null, kind:'block'|'notice'}
   function validateForm(){
-    const shower = sgShowerSel.value === "" ? null : parseInt(sgShowerSel.value,10);
-    const known = sgKnownToggle.checked;
-    const knownCard = (shower!==null && known) ? sgKnownCardSel.value : null;
-
-    if(shower === null || !knownCard){ clearWarning(); return {ok:true}; }
+    if(!seq || seq.shower === null || !sgKnownToggle.checked){ clearWarning(); return {ok:true}; }
+    const shower = seq.shower;
+    const knownCard = sgKnownCardSel.value;
+    if(!knownCard){ clearWarning(); return {ok:true}; }
 
     const { facts } = computeFacts();
     const currentForShower = facts[knownCard] ? facts[knownCard][shower] : undefined;
 
-    // hard conflict: already established this player does NOT have this card
     if(currentForShower === "no"){
-      const msg = `⚠ Conflict: ${colName(shower)} was already established to NOT have "${knownCard}". They can't show it now.`;
+      const msg = "⚠ Conflict: " + colName(shower) + ' was already established to NOT have "' + knownCard + '". They can\'t show it now.';
       showWarning(msg, "block");
       return {ok:false, message:msg};
     }
 
-    // hard conflict: someone else already confirmed to hold this exact card
     const allCols = state.players.map((_,i)=>i).concat([CASE]);
     const holder = allCols.find(c => c !== shower && facts[knownCard] && facts[knownCard][c] === "yes");
     if(holder !== undefined){
-      const msg = `⚠ Conflict: "${knownCard}" is already known to be held by ${colName(holder)}. It can't also be shown by ${colName(shower)}.`;
+      const msg = '⚠ Conflict: "' + knownCard + '" is already known to be held by ' + colName(holder) + ". It can't also be shown by " + colName(shower) + ".";
       showWarning(msg, "block");
       return {ok:false, message:msg};
     }
 
-    // soft notice: this exact card was already confirmed shown by this same player before
     if(currentForShower === "yes"){
-      const msg = `ℹ "${knownCard}" was already shown/confirmed as held by ${colName(shower)} — logging this again is harmless but redundant.`;
+      const msg = 'ℹ "' + knownCard + '" was already shown/confirmed as held by ' + colName(shower) + " — logging this again is harmless but redundant.";
       showWarning(msg, "notice");
       return {ok:true, message:msg};
     }
@@ -683,34 +867,25 @@
     return {ok:true};
   }
 
-  document.getElementById("sgSubmit").addEventListener("click", () => {
-    const suggester = parseInt(sgSuggesterSel.value,10);
+  sgSubmitBtn.addEventListener("click", () => {
+    if(!seq || !isSequenceComplete()) return;
+
+    const suggester = seq.suggester;
     const suspect = sgSuspectSel.value;
     const weapon = sgWeaponSel.value;
     const room = sgRoomSel.value;
-    const passed = Array.from(sgPassedWrap.querySelectorAll('input[data-role="passed"]:checked')).map(cb=>parseInt(cb.value,10));
-    const showerVal = sgShowerSel.value;
-    const shower = showerVal === "" ? null : parseInt(showerVal,10);
+    const passed = seq.order.filter((p,i)=>seq.statusList[i]==="passed");
+    const shower = seq.shower;
     const known = sgKnownToggle.checked;
     const knownCard = (shower!==null && known) ? sgKnownCardSel.value : null;
 
-    if(shower !== null && passed.includes(shower)){
-      showWarning("The player who showed a card can't also be marked as passed.", "block");
-      return;
-    }
-    if(suggester === shower){
-      showWarning("The suggesting player can't show a card to themselves.", "block");
-      return;
-    }
-
-    // check passed players for contradictions (already confirmed holding one of the 3 cards)
     if(passed.length){
       const { facts } = computeFacts();
       const trio = [suspect, weapon, room];
       for(const p of passed){
         for(const c of trio){
           if(facts[c] && facts[c][p] === "yes"){
-            showWarning(`⚠ Conflict: ${colName(p)} is already known to hold "${c}" — they can't have passed on this suggestion.`, "block");
+            showWarning("⚠ Conflict: " + colName(p) + ' is already known to hold "' + c + '" — they can\'t have passed on this suggestion.', "block");
             return;
           }
         }
@@ -719,30 +894,28 @@
 
     if(knownCard){
       const check = validateForm();
-      if(!check.ok){
-        return; // hard conflict already flashed
-      }
+      if(!check.ok) return;
     }
 
     state.log.push({ suggester, suspect, weapon, room, passed, shower, knownCard });
+    state.currentTurn = nextIdx(suggester);
     saveState();
-    clearWarning();
-    renderAll();
+    renderAll({ rebuildRoster:true, forceResetSequence:true });
   });
 
   function describeLogEntry(e){
-    let txt = `<b>${colName(e.suggester)}</b> suggested <b>${e.suspect}</b> / <b>${e.weapon}</b> / <b>${e.room}</b>. `;
+    let txt = "<b>" + colName(e.suggester) + "</b> suggested <b>" + e.suspect + "</b> / <b>" + e.weapon + "</b> / <b>" + e.room + "</b>. ";
     if(e.passed.length){
-      txt += e.passed.map(colName).join(", ") + ` <span class="tag pass">passed</span> `;
+      txt += e.passed.map(colName).join(", ") + ' <span class="tag pass">passed</span> ';
     }
     if(e.shower!==null){
-      txt += `${colName(e.shower)} <span class="tag shown">showed a card</span>`;
-      if(e.knownCard) txt += ` (${e.knownCard})`;
-      else txt += ` (unknown which)`;
+      txt += colName(e.shower) + ' <span class="tag shown">showed a card</span>';
+      if(e.knownCard) txt += " (" + e.knownCard + ")";
+      else txt += " (unknown which)";
     } else if(!e.passed.length){
-      txt += `<span class="tag none">no one else at the table</span>`;
+      txt += '<span class="tag none">no one else at the table</span>';
     } else {
-      txt += `<span class="tag none">no card shown</span>`;
+      txt += '<span class="tag none">no card shown</span>';
     }
     return txt;
   }
@@ -767,7 +940,7 @@
       del.addEventListener("click", () => {
         state.log.splice(idx,1);
         saveState();
-        renderAll();
+        renderAll({ rebuildRoster:false });
       });
       row.appendChild(txt);
       row.appendChild(del);
@@ -780,13 +953,12 @@
     const facts = {};
     const conflicts = [];
     ALL_CARDS.forEach(card => facts[card] = {});
-
     const columns = state.players.map((_,i)=>i).concat([CASE]);
 
     function setFact(card, col, val){
       const cur = facts[card][col];
       if(cur && cur !== val){
-        conflicts.push(`Contradiction on "${card}" / ${colName(col)}: already ${cur}, now trying to set ${val}.`);
+        conflicts.push('Contradiction on "' + card + '" / ' + colName(col) + ": already " + cur + ", now trying to set " + val + ".");
         return;
       }
       facts[card][col] = val;
@@ -877,7 +1049,7 @@
           return;
         }
         if(remaining.length === 0){
-          conflicts.push(`Unresolvable: ${colName(con.player)} was shown one of ${con.options.join(", ")} but all are ruled out for them.`);
+          conflicts.push("Unresolvable: " + colName(con.player) + " was shown one of " + con.options.join(", ") + " but all are ruled out for them.");
           return;
         }
         stillActive.push(con);
@@ -897,7 +1069,7 @@
     else if(cur === "yes") state.manual[key] = "no";
     else delete state.manual[key];
     saveState();
-    renderAll(false);
+    renderAll({ rebuildRoster:false });
   }
 
   // ---------- Grid render ----------
@@ -1002,32 +1174,51 @@
     }
   }
 
+  function renderTurnBanner(){
+    const p = state.players[state.currentTurn];
+    turnWhoEl.textContent = p ? (p.name + (state.currentTurn===state.me ? " (me)" : "")) + " to suggest" : "—";
+    turnDirEl.textContent = state.direction === "cw" ? "↻ Clockwise" : "↺ Anti-clockwise";
+  }
+
   document.getElementById("resetAll").addEventListener("click", () => {
     if(confirm("This will erase all players, cards, and the suggestion log. Continue?")){
       state = freshState(4);
       numPlayersSel.value = 4;
+      directionSel.value = state.direction;
       saveState();
       closeDrawer();
-      renderAll();
+      renderAll({ forceResetSequence:true });
     }
   });
 
   // ---------- Master render ----------
-  function renderAll(rebuildRoster){
-    if(rebuildRoster !== false) renderSuggesterAndRoster();
-    renderPlayersList();
+  function renderAll(opts){
+    opts = opts || {};
+    const rebuildRoster = opts.rebuildRoster !== false;
+    const skipPlayersList = !!opts.skipPlayersList;
+    const forceResetSequence = !!opts.forceResetSequence;
+
+    // IMPORTANT: the suggester <select> must reflect the correct value
+    // BEFORE resetSequence() runs, since resetSequence() reads it directly.
+    if(rebuildRoster) renderSuggesterAndRoster();
+    else relabelSuggesterOptions();
+
+    if(!skipPlayersList) renderPlayersList();
     renderMyCards();
     renderLog();
+    renderTurnBanner();
+
+    if(forceResetSequence || !seq) resetSequence();
+    renderSequence();
+
     const { facts, conflicts, columns } = computeFacts();
     renderConflicts(conflicts);
     renderGrid(facts, columns);
     renderSolution(facts);
-    validateForm();
   }
 
-  renderAll();
+  renderAll({ forceResetSequence:true });
 
-  // ---------- PWA service worker ----------
   if("serviceWorker" in navigator && location.protocol !== "file:"){
     window.addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js").catch(() => {});
