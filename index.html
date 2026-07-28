@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Case File — Cluedo Deduction Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1b2430">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Case File">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    --ink:#1b2430;
+    --ink-2:#232f3e;
+    --parchment:#ece4d3;
+    --parchment-dim:#cfc4a8;
+    --brass:#b8935a;
+    --brass-bright:#d9b571;
+    --green:#4a7a58;
+    --green-bright:#6fae80;
+    --red:#9a3b3b;
+    --red-bright:#c25a5a;
+    --line:#3a475a;
+    --shadow: 0 6px 18px rgba(0,0,0,0.35);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top left, #23303f 0%, #161d27 55%, #10151d 100%);
+    color:var(--parchment);
+    font-family: Georgia, 'Times New Roman', serif;
+    min-height:100vh;
+    padding: calc(16px + var(--safe-top)) 14px calc(80px + var(--safe-bottom));
+  }
+  h1,h2,h3{ font-family: 'Palatino Linotype', Georgia, serif; letter-spacing:.02em; margin:0 0 4px; }
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  header.masthead{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    border-bottom: 2px solid var(--brass);
+    padding-bottom:12px; margin-bottom:20px; flex-wrap:wrap;
+    position:sticky; top:0; z-index:20;
+    background: linear-gradient(180deg, #161d27 80%, transparent);
+    padding-top: 4px;
+  }
+  header.masthead .left{ display:flex; align-items:center; gap:12px; min-width:0; }
+  .hamburger-btn{
+    background:transparent; border:1px solid var(--brass); color:var(--brass-bright);
+    width:42px; height:42px; border-radius:6px; font-size:20px; line-height:1;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .hamburger-btn:hover{ background:rgba(184,147,90,.15); }
+  .title-block{ display:flex; flex-direction:column; min-width:0; }
+  h1{ font-size:24px; color:var(--parchment); white-space:nowrap; }
+  .subtitle{ font-family:'Courier New',monospace; font-size:11px; color:var(--parchment-dim); letter-spacing:.06em; }
+  .stamp{
+    font-family: 'Courier New', monospace; font-size:10px; letter-spacing:.14em;
+    color:var(--brass-bright); border:1px solid var(--brass); padding:4px 8px;
+    text-transform:uppercase; opacity:.85; white-space:nowrap;
+  }
+
+  /* Drawer / hamburger menu */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:40;
+    opacity:0; pointer-events:none; transition:opacity .2s ease;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .drawer{
+    position:fixed; top:0; left:0; bottom:0; width:min(340px, 88vw);
+    background: linear-gradient(180deg, var(--ink-2), var(--ink));
+    border-right:1px solid var(--line);
+    z-index:41; transform:translateX(-105%); transition:transform .25s ease;
+    display:flex; flex-direction:column; box-shadow: var(--shadow);
+    padding: calc(14px + var(--safe-top)) 0 calc(14px + var(--safe-bottom));
+  }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-head{ display:flex; align-items:center; justify-content:space-between; padding:0 16px 14px; border-bottom:1px solid var(--line); }
+  .drawer-head h2{ font-size:16px; color:var(--brass-bright); }
+  .drawer-close{ background:transparent; border:none; color:var(--parchment-dim); font-size:22px; cursor:pointer; padding:2px 8px; }
+  .drawer-body{ overflow-y:auto; padding:14px 16px; flex:1; }
+  .drawer-section{ margin-bottom:26px; }
+  .drawer-section h3{
+    font-size:12.5px; color:var(--brass-bright); text-transform:uppercase; letter-spacing:.08em;
+    font-family:'Courier New',monospace; border-bottom:1px dashed var(--line); padding-bottom:6px; margin-bottom:10px;
+  }
+  .drawer-hint{ background:rgba(184,147,90,.12); border:1px solid var(--brass); border-radius:6px; padding:10px 12px; font-size:12.5px; color:var(--parchment); margin-bottom:16px; }
+
+  .panel{
+    background: linear-gradient(180deg, var(--ink-2), var(--ink));
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:16px 16px;
+    margin-bottom:18px;
+    box-shadow: var(--shadow);
+  }
+  .panel h2{ font-size:16px; color:var(--brass-bright); border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:14px; display:flex; align-items:center; gap:8px;}
+  .panel h2 .num{ font-family:'Courier New',monospace; font-size:12px; color:var(--parchment-dim); border:1px solid var(--line); border-radius:50%; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;}
+
+  .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  label{ font-size:11.5px; color:var(--parchment-dim); font-family:'Courier New',monospace; text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:4px;}
+  select, input[type=text], input[type=number]{
+    background:#111823; color:var(--parchment); border:1px solid var(--line);
+    border-radius:4px; padding:9px 9px; font-family:'Courier New',monospace; font-size:14px;
+    width:100%;
+  }
+  select:focus, input:focus{ outline:2px solid var(--brass); outline-offset:1px; }
+  button{
+    background:var(--brass); color:#1b1408; border:none; border-radius:4px;
+    padding:10px 14px; font-family:'Courier New',monospace; font-size:12.5px; font-weight:bold;
+    letter-spacing:.05em; text-transform:uppercase; cursor:pointer; transition:.15s background;
+  }
+  button:hover{ background:var(--brass-bright); }
+  button.secondary{ background:transparent; color:var(--brass-bright); border:1px solid var(--brass); }
+  button.secondary:hover{ background:rgba(184,147,90,0.15); }
+  button.danger{ background:var(--red); color:#fff0f0; }
+  button.danger:hover{ background:var(--red-bright); }
+  button.block{ width:100%; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .players-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+  .player-row{ display:flex; gap:8px; align-items:center; background:#111823; border:1px solid var(--line); border-radius:4px; padding:6px 8px; flex-wrap:wrap; }
+  .player-row input[type=text]{ flex:1; min-width:90px; width:auto; }
+  .player-row .hs-box{ width:52px; text-align:center; flex-shrink:0; }
+  .player-row .hs-label{ font-size:10px; margin:0; flex-shrink:0; }
+  .player-row button{ flex-shrink:0; padding:6px 9px; font-size:11px; }
+
+  .cards-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .cat-block h3{ font-size:12.5px; color:var(--brass-bright); font-family:'Courier New',monospace; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; border-bottom:1px dashed var(--line); padding-bottom:4px;}
+  .card-check{ display:flex; align-items:center; gap:7px; padding:4px 0; font-size:14px; }
+  .card-check input{ accent-color:var(--brass); width:16px; height:16px; flex-shrink:0; }
+
+  /* Deduction grid */
+  .table-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:6px; -webkit-overflow-scrolling:touch; }
+  table.grid{ border-collapse:collapse; width:100%; font-family:'Courier New',monospace; font-size:12.5px; min-width:560px; }
+  table.grid th, table.grid td{ border:1px solid var(--line); padding:0; text-align:center; }
+  table.grid thead th{ background:#111823; color:var(--brass-bright); padding:8px 6px; font-size:11px; letter-spacing:.02em; white-space:nowrap; position:sticky; top:0; }
+  table.grid thead th.me-col{ color:var(--green-bright); }
+  table.grid thead th.case-col{ color:var(--red-bright); }
+  table.grid td.card-name{ text-align:left; padding:6px 10px; background:#161d27; color:var(--parchment); white-space:nowrap; font-family:Georgia,serif; font-size:13px; position:sticky; left:0; }
+  table.grid tr.cat-header td{ background:var(--ink-2); color:var(--brass-bright); font-family:'Courier New',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; text-align:left; padding:6px 10px; }
+  .cell{
+    width:42px; height:38px; cursor:pointer; user-select:none; font-weight:bold; font-size:15px;
+    transition:.1s background; display:flex; align-items:center; justify-content:center;
+  }
+  .cell:hover{ filter:brightness(1.3); }
+  .cell.unknown{ background:#1b2430; color:#465066; }
+  .cell.yes{ background:rgba(74,122,88,.35); color:var(--green-bright); }
+  .cell.no{ background:rgba(154,59,59,.22); color:var(--red-bright); }
+  .cell.manual{ box-shadow: inset 0 0 0 2px var(--brass); }
+  .cell.solved{ background:var(--green); color:#eafff0; }
+
+  .legend{ display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; font-size:11.5px; color:var(--parchment-dim); font-family:'Courier New',monospace;}
+  .legend span.sw{ display:inline-block; width:12px; height:12px; border-radius:2px; margin-right:5px; vertical-align:-1px;}
+
+  .solution-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .sol-card{ background:#111823; border:1px solid var(--line); border-radius:6px; padding:12px 12px; }
+  .sol-card h4{ margin:0 0 8px; font-size:11px; color:var(--brass-bright); text-transform:uppercase; letter-spacing:.06em; font-family:'Courier New',monospace;}
+  .sol-card .answer{ font-size:15px; color:var(--green-bright); font-weight:bold; }
+  .sol-card .answer.unsolved{ color:var(--parchment-dim); font-weight:normal; font-size:12.5px; }
+  .sol-card ul{ margin:6px 0 0; padding-left:16px; font-size:11.5px; color:var(--parchment-dim); }
+
+  .sugg-form{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:14px;}
+  .sugg-form .field{ display:flex; flex-direction:column; }
+  .checks-row{ display:flex; flex-wrap:wrap; gap:10px 16px; margin:8px 0; }
+  .checks-row label.inline{ display:flex; align-items:center; gap:5px; font-family:Georgia,serif; text-transform:none; font-size:13.5px; color:var(--parchment); letter-spacing:0; }
+  .checks-row input[type=checkbox]{ accent-color:var(--brass); width:16px; height:16px; }
+
+  .log-list{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .log-entry{ background:#111823; border:1px solid var(--line); border-radius:4px; padding:8px 12px; font-size:12.5px; display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; }
+  .log-entry .txt{ flex:1; min-width:200px; }
+  .log-entry .txt b{ color:var(--brass-bright); }
+  .log-entry .txt .tag{ font-family:'Courier New',monospace; font-size:11px; padding:1px 6px; border-radius:3px; margin-left:4px; display:inline-block; }
+  .tag.shown{ background:rgba(74,122,88,.25); color:var(--green-bright); }
+  .tag.pass{ background:rgba(154,59,59,.18); color:var(--red-bright); }
+  .tag.none{ background:#232f3e; color:var(--parchment-dim); }
+
+  .conflict-banner{
+    background: rgba(154,59,59,.25); border:1px solid var(--red-bright); color:#ffd9d9;
+    padding:10px 14px; border-radius:6px; margin-bottom:16px; font-family:'Courier New',monospace; font-size:12.5px;
+  }
+  .warning-box{
+    background: rgba(154,59,59,.18); border:1px solid var(--red-bright); color:#ffd9d9;
+    padding:9px 12px; border-radius:6px; margin:8px 0 4px; font-size:12.5px; display:none;
+  }
+  .warning-box.notice{ background: rgba(184,147,90,.15); border-color:var(--brass); color:var(--parchment); }
+  .warning-box.show{ display:block; }
+  .warning-box.flash-warn{ animation: flashWarn .5s ease-in-out 3; }
+  @keyframes flashWarn{
+    0%,100%{ filter:brightness(1); }
+    50%{ filter:brightness(1.7); }
+  }
+
+  .empty-note{ color:var(--parchment-dim); font-size:13px; font-style:italic; }
+  footer{ text-align:center; color:var(--parchment-dim); font-size:11px; font-family:'Courier New',monospace; margin-top:26px; opacity:.6;}
+
+  @media (min-width:640px){
+    .sugg-form{ grid-template-columns:repeat(4,1fr); }
+    h1{ font-size:28px; }
+  }
+  @media (max-width: 480px){
+    .cards-grid{ grid-template-columns:1fr 1fr; }
+    .solution-grid{ grid-template-columns:1fr; }
+    body{ padding-left:10px; padding-right:10px; }
+    .panel{ padding:14px 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="left">
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">☰</button>
+      <div class="title-block">
+        <h1>🕵️ Case File</h1>
+        <span class="subtitle">Cluedo Deduction Tracker</span>
+      </div>
+    </div>
+    <span class="stamp">Confidential Notebook</span>
+  </header>
+
+  <div id="conflictBanner"></div>
+
+  <!-- MAIN CONTENT -->
+
+  <!-- SUGGESTION LOG -->
+  <section class="panel">
+    <h2><span class="num">1</span> Log a Suggestion</h2>
+    <div class="sugg-form" id="suggForm">
+      <div class="field">
+        <label>Suggesting player</label>
+        <select id="sgSuggester"></select>
+      </div>
+      <div class="field">
+        <label>Suspect</label>
+        <select id="sgSuspect"></select>
+      </div>
+      <div class="field">
+        <label>Weapon</label>
+        <select id="sgWeapon"></select>
+      </div>
+      <div class="field">
+        <label>Room</label>
+        <select id="sgRoom"></select>
+      </div>
+    </div>
+    <label>Players who were asked and passed (showed nothing) — everyone except the suggester</label>
+    <div class="checks-row" id="sgPassed"></div>
+
+    <div class="row">
+      <div class="field" style="flex:1; min-width:180px;">
+        <label>Player who showed a card (if any)</label>
+        <select id="sgShower"><option value="">— No one showed —</option></select>
+      </div>
+      <div class="field" id="sgKnownWrap" style="display:none; flex:1; min-width:180px;">
+        <label class="inline"><input type="checkbox" id="sgKnownToggle"> I know which card was shown</label>
+        <select id="sgKnownCard" style="margin-top:6px; display:none;"></select>
+      </div>
+    </div>
+
+    <div id="sgWarning" class="warning-box"></div>
+
+    <div style="margin-top:12px;">
+      <button id="sgSubmit" class="block">Add to case log</button>
+    </div>
+
+    <div class="log-list" id="logList"></div>
+  </section>
+
+  <!-- DEDUCTION GRID -->
+  <section class="panel">
+    <h2><span class="num">2</span> Deduction Grid</h2>
+    <div class="empty-note" style="margin-bottom:10px;">Tap any cell to add a manual note (cycles Unknown → Held → Not Held). Gold outline = manually set.</div>
+    <div class="table-scroll">
+      <table class="grid" id="grid"></table>
+    </div>
+    <div class="legend">
+      <div><span class="sw" style="background:rgba(74,122,88,.35);border:1px solid var(--green-bright);"></span>Holds card</div>
+      <div><span class="sw" style="background:rgba(154,59,59,.22);border:1px solid var(--red-bright);"></span>Does not hold</div>
+      <div><span class="sw" style="background:#1b2430;border:1px solid #465066;"></span>Unknown</div>
+      <div><span class="sw" style="background:var(--green);border:1px solid var(--green-bright);"></span>Solved</div>
+      <div><span class="sw" style="background:#1b2430;border:2px solid var(--brass);"></span>Manual</div>
+    </div>
+  </section>
+
+  <!-- SOLUTION -->
+  <section class="panel">
+    <h2><span class="num">3</span> Case File Solution</h2>
+    <div class="solution-grid" id="solutionGrid"></div>
+  </section>
+
+  <footer>Deductions update automatically from your cards, shown cards, passes, and logged suggestions. Data is saved locally on this device only.</footer>
+</div>
+
+<!-- HAMBURGER DRAWER -->
+<div class="overlay" id="overlay"></div>
+<nav class="drawer" id="drawer" aria-label="Setup menu">
+  <div class="drawer-head">
+    <h2>Case Setup</h2>
+    <button class="drawer-close" id="drawerClose" aria-label="Close menu">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-hint" id="firstRunHint" style="display:none;">
+      Welcome, detective. Start below: choose how many are playing, name everyone, mark which one is you, then check off your own cards.
+    </div>
+
+    <div class="drawer-section">
+      <h3>① Number of Players</h3>
+      <select id="numPlayers"></select>
+    </div>
+
+    <div class="drawer-section">
+      <h3>② Names &amp; Who's Me</h3>
+      <div class="players-list" id="playersList"></div>
+      <button class="secondary block" id="recomputeHands">Recalculate default hand sizes</button>
+      <div class="empty-note" style="margin-top:8px;">Hand sizes are guessed evenly from the deal — edit if you know the real count.</div>
+    </div>
+
+    <div class="drawer-section">
+      <h3>③ My Cards</h3>
+      <div class="cards-grid" id="myCardsGrid"></div>
+    </div>
+
+    <div class="drawer-section">
+      <h3>Danger Zone</h3>
+      <button class="danger block" id="resetAll">Reset entire case</button>
+    </div>
+  </div>
+</nav>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Static card data ----------
+  const SUSPECTS = ["Miss Scarlett","Colonel Mustard","Mrs White","Reverend Green","Mrs Peacock","Professor Plum"];
+  const WEAPONS  = ["Candlestick","Knife","Lead Pipe","Revolver","Rope","Wrench"];
+  const ROOMS    = ["Kitchen","Ballroom","Conservatory","Dining Room","Billiard Room","Library","Lounge","Hall","Study"];
+  const CATEGORIES = [
+    {key:"suspect", label:"Suspects", cards:SUSPECTS},
+    {key:"weapon",  label:"Weapons",  cards:WEAPONS},
+    {key:"room",    label:"Rooms",    cards:ROOMS}
+  ];
+  const ALL_CARDS = SUSPECTS.concat(WEAPONS, ROOMS);
+  const CATEGORY_OF = {};
+  CATEGORIES.forEach(c => c.cards.forEach(card => CATEGORY_OF[card] = c.key));
+  const CASE = "__case__";
+  const STORAGE_KEY = "cluedo_case_state_v1";
+
+  // ---------- State ----------
+  const isFirstRun = !localStorage.getItem(STORAGE_KEY);
+
+  const DEFAULT_STATE = {
+    numPlayers: 4,
+    players: [],
+    me: 0,
+    myCards: [],
+    manual: {},
+    log: []
+  };
+
+  let state = loadState();
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(parsed && parsed.players && parsed.players.length) return parsed;
+      }
+    }catch(e){}
+    return freshState(4);
+  }
+
+  function freshState(n){
+    const s = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    s.numPlayers = n;
+    s.players = buildDefaultPlayers(n);
+    return s;
+  }
+
+  function buildDefaultPlayers(n){
+    const dealt = ALL_CARDS.length - 3;
+    const base = Math.floor(dealt / n);
+    const rem = dealt % n;
+    const players = [];
+    for(let i=0;i<n;i++){
+      players.push({ name: "Player " + (i+1), handSize: base + (i < rem ? 1 : 0) });
+    }
+    return players;
+  }
+
+  function saveState(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function colName(col){
+    if(col===CASE) return "Case File";
+    return state.players[col] ? state.players[col].name : ("Player "+(col+1));
+  }
+
+  // ---------- Hamburger drawer ----------
+  const drawer = document.getElementById("drawer");
+  const overlay = document.getElementById("overlay");
+  function openDrawer(){ drawer.classList.add("open"); overlay.classList.add("open"); }
+  function closeDrawer(){ drawer.classList.remove("open"); overlay.classList.remove("open"); }
+  document.getElementById("hamburgerBtn").addEventListener("click", openDrawer);
+  document.getElementById("drawerClose").addEventListener("click", closeDrawer);
+  overlay.addEventListener("click", closeDrawer);
+
+  if(isFirstRun){
+    document.getElementById("firstRunHint").style.display = "block";
+    openDrawer();
+  }
+
+  // ---------- Setup: number of players ----------
+  const numPlayersSel = document.getElementById("numPlayers");
+  for(let n=3;n<=6;n++){
+    const o = document.createElement("option");
+    o.value = n; o.textContent = n + " players";
+    numPlayersSel.appendChild(o);
+  }
+  numPlayersSel.value = state.numPlayers;
+
+  numPlayersSel.addEventListener("change", () => {
+    const n = parseInt(numPlayersSel.value, 10);
+    const oldPlayers = state.players;
+    state.numPlayers = n;
+    const fresh = buildDefaultPlayers(n);
+    for(let i=0;i<n;i++){
+      if(oldPlayers[i]) fresh[i].name = oldPlayers[i].name;
+    }
+    state.players = fresh;
+    if(state.me >= n) state.me = 0;
+    state.log = state.log.filter(e => e.suggester < n && (e.shower===null || e.shower < n) && e.passed.every(p=>p<n));
+    Object.keys(state.manual).forEach(k=>{
+      const col = k.split("|")[1];
+      if(col !== CASE && parseInt(col,10) >= n) delete state.manual[k];
+    });
+    saveState();
+    renderAll();
+  });
+
+  document.getElementById("recomputeHands").addEventListener("click", () => {
+    const fresh = buildDefaultPlayers(state.players.length);
+    state.players.forEach((p,i)=> p.handSize = fresh[i].handSize);
+    saveState();
+    renderAll(false);
+  });
+
+  // ---------- Players list render ----------
+  function renderPlayersList(){
+    const wrap = document.getElementById("playersList");
+    wrap.innerHTML = "";
+    state.players.forEach((p, idx) => {
+      const row = document.createElement("div");
+      row.className = "player-row";
+
+      const nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.value = p.name;
+      nameInput.addEventListener("input", () => { p.name = nameInput.value || ("Player "+(idx+1)); saveState(); renderAll(false); });
+      row.appendChild(nameInput);
+
+      const hsLabel = document.createElement("label");
+      hsLabel.className = "hs-label";
+      hsLabel.style.marginBottom = "0";
+      hsLabel.textContent = "Cards:";
+      row.appendChild(hsLabel);
+
+      const hsInput = document.createElement("input");
+      hsInput.type = "number"; hsInput.min="0"; hsInput.max="21";
+      hsInput.className = "hs-box";
+      hsInput.value = p.handSize;
+      hsInput.addEventListener("input", () => { p.handSize = parseInt(hsInput.value,10)||0; saveState(); renderAll(false); });
+      row.appendChild(hsInput);
+
+      const meBtn = document.createElement("button");
+      meBtn.className = "secondary";
+      meBtn.textContent = (state.me===idx) ? "★ Me" : "Mark as me";
+      meBtn.addEventListener("click", () => { state.me = idx; saveState(); renderAll(); });
+      row.appendChild(meBtn);
+
+      wrap.appendChild(row);
+    });
+  }
+
+  // ---------- My cards ----------
+  function renderMyCards(){
+    const grid = document.getElementById("myCardsGrid");
+    grid.innerHTML = "";
+    CATEGORIES.forEach(cat => {
+      const block = document.createElement("div");
+      block.className = "cat-block";
+      const h = document.createElement("h3"); h.textContent = cat.label;
+      block.appendChild(h);
+      cat.cards.forEach(card => {
+        const row = document.createElement("div");
+        row.className = "card-check";
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = state.myCards.includes(card);
+        cb.addEventListener("change", () => {
+          if(cb.checked){ if(!state.myCards.includes(card)) state.myCards.push(card); }
+          else { state.myCards = state.myCards.filter(c=>c!==card); }
+          saveState(); renderAll(false);
+        });
+        const lbl = document.createElement("span");
+        lbl.textContent = card;
+        row.appendChild(cb); row.appendChild(lbl);
+        block.appendChild(row);
+      });
+      grid.appendChild(block);
+    });
+  }
+
+  // ---------- Suggestion form: static parts built once ----------
+  function fillCardSelect(sel, cards){
+    sel.innerHTML = "";
+    cards.forEach(c => {
+      const o = document.createElement("option"); o.value = c; o.textContent = c;
+      sel.appendChild(o);
+    });
+  }
+
+  const sgSuggesterSel = document.getElementById("sgSuggester");
+  const sgSuspectSel = document.getElementById("sgSuspect");
+  const sgWeaponSel = document.getElementById("sgWeapon");
+  const sgRoomSel = document.getElementById("sgRoom");
+  const sgShowerSel = document.getElementById("sgShower");
+  const sgPassedWrap = document.getElementById("sgPassed");
+  const sgKnownToggle = document.getElementById("sgKnownToggle");
+  const sgKnownCardSel = document.getElementById("sgKnownCard");
+  const sgKnownWrap = document.getElementById("sgKnownWrap");
+  const sgWarningBox = document.getElementById("sgWarning");
+
+  fillCardSelect(sgSuspectSel, SUSPECTS);
+  fillCardSelect(sgWeaponSel, WEAPONS);
+  fillCardSelect(sgRoomSel, ROOMS);
+
+  function updateKnownCardOptions(){
+    fillCardSelect(sgKnownCardSel, [sgSuspectSel.value, sgWeaponSel.value, sgRoomSel.value]);
+  }
+  [sgSuspectSel, sgWeaponSel, sgRoomSel].forEach(sel=>{
+    sel.addEventListener("change", () => {
+      if(sgKnownToggle.checked) updateKnownCardOptions();
+      validateForm();
+    });
+  });
+
+  sgKnownToggle.addEventListener("change", function(){
+    sgKnownCardSel.style.display = this.checked ? "block" : "none";
+    if(this.checked) updateKnownCardOptions();
+    validateForm();
+  });
+  sgKnownCardSel.addEventListener("change", validateForm);
+
+  sgShowerSel.addEventListener("change", () => {
+    sgKnownWrap.style.display = sgShowerSel.value === "" ? "none" : "flex";
+    if(sgShowerSel.value === ""){
+      sgKnownToggle.checked = false;
+      sgKnownCardSel.style.display = "none";
+    }
+    refreshPassedExclusion();
+    validateForm();
+  });
+
+  sgSuggesterSel.addEventListener("change", () => {
+    refreshPassedExclusion();
+    refreshShowerExclusion();
+    validateForm();
+  });
+
+  // rebuild passed checkboxes / shower select whenever the player roster changes (name/count),
+  // while preserving current selections
+  function renderSuggesterAndRoster(){
+    const prevSuggester = sgSuggesterSel.value;
+    sgSuggesterSel.innerHTML = "";
+    state.players.forEach((p, idx) => {
+      const o = document.createElement("option");
+      o.value = idx; o.textContent = p.name + (idx===state.me ? " (me)" : "");
+      sgSuggesterSel.appendChild(o);
+    });
+    if(Array.from(sgSuggesterSel.options).some(o=>o.value===prevSuggester)) sgSuggesterSel.value = prevSuggester;
+
+    rebuildPassedCheckboxes();
+    rebuildShowerOptions();
+  }
+
+  function rebuildPassedCheckboxes(){
+    const prevChecked = new Set(Array.from(sgPassedWrap.querySelectorAll('input[type=checkbox]:checked')).map(cb=>cb.value));
+    sgPassedWrap.innerHTML = "";
+    const suggester = sgSuggesterSel.value;
+    state.players.forEach((p, idx) => {
+      if(String(idx) === suggester) return; // exclude suggester
+      const lab = document.createElement("label");
+      lab.className = "inline";
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.value = idx; cb.dataset.role="passed";
+      cb.checked = prevChecked.has(String(idx));
+      cb.addEventListener("change", validateForm);
+      lab.appendChild(cb);
+      lab.appendChild(document.createTextNode(p.name));
+      sgPassedWrap.appendChild(lab);
+    });
+  }
+
+  function rebuildShowerOptions(){
+    const prevVal = sgShowerSel.value;
+    sgShowerSel.innerHTML = "";
+    const blank = document.createElement("option"); blank.value=""; blank.textContent = "— No one showed —";
+    sgShowerSel.appendChild(blank);
+    const suggester = sgSuggesterSel.value;
+    state.players.forEach((p, idx) => {
+      if(String(idx) === suggester) return; // suggester can't show to self
+      const o = document.createElement("option");
+      o.value = idx; o.textContent = p.name + (idx===state.me ? " (me)" : "");
+      sgShowerSel.appendChild(o);
+    });
+    if(Array.from(sgShowerSel.options).some(o=>o.value===prevVal)) sgShowerSel.value = prevVal;
+    sgKnownWrap.style.display = sgShowerSel.value === "" ? "none" : "flex";
+  }
+
+  function refreshPassedExclusion(){ rebuildPassedCheckboxes(); }
+  function refreshShowerExclusion(){ rebuildShowerOptions(); }
+
+  // ---------- Live validation / "already shown" flashing ----------
+  function showWarning(msg, kind){
+    sgWarningBox.textContent = msg;
+    sgWarningBox.className = "warning-box show" + (kind==="notice" ? " notice" : "") ;
+    // retrigger flash animation
+    sgWarningBox.classList.remove("flash-warn");
+    void sgWarningBox.offsetWidth;
+    sgWarningBox.classList.add("flash-warn");
+  }
+  function clearWarning(){
+    sgWarningBox.className = "warning-box";
+    sgWarningBox.textContent = "";
+  }
+
+  // returns {ok:boolean, message:string|null, kind:'block'|'notice'}
+  function validateForm(){
+    const shower = sgShowerSel.value === "" ? null : parseInt(sgShowerSel.value,10);
+    const known = sgKnownToggle.checked;
+    const knownCard = (shower!==null && known) ? sgKnownCardSel.value : null;
+
+    if(shower === null || !knownCard){ clearWarning(); return {ok:true}; }
+
+    const { facts } = computeFacts();
+    const currentForShower = facts[knownCard] ? facts[knownCard][shower] : undefined;
+
+    // hard conflict: already established this player does NOT have this card
+    if(currentForShower === "no"){
+      const msg = `⚠ Conflict: ${colName(shower)} was already established to NOT have "${knownCard}". They can't show it now.`;
+      showWarning(msg, "block");
+      return {ok:false, message:msg};
+    }
+
+    // hard conflict: someone else already confirmed to hold this exact card
+    const allCols = state.players.map((_,i)=>i).concat([CASE]);
+    const holder = allCols.find(c => c !== shower && facts[knownCard] && facts[knownCard][c] === "yes");
+    if(holder !== undefined){
+      const msg = `⚠ Conflict: "${knownCard}" is already known to be held by ${colName(holder)}. It can't also be shown by ${colName(shower)}.`;
+      showWarning(msg, "block");
+      return {ok:false, message:msg};
+    }
+
+    // soft notice: this exact card was already confirmed shown by this same player before
+    if(currentForShower === "yes"){
+      const msg = `ℹ "${knownCard}" was already shown/confirmed as held by ${colName(shower)} — logging this again is harmless but redundant.`;
+      showWarning(msg, "notice");
+      return {ok:true, message:msg};
+    }
+
+    clearWarning();
+    return {ok:true};
+  }
+
+  document.getElementById("sgSubmit").addEventListener("click", () => {
+    const suggester = parseInt(sgSuggesterSel.value,10);
+    const suspect = sgSuspectSel.value;
+    const weapon = sgWeaponSel.value;
+    const room = sgRoomSel.value;
+    const passed = Array.from(sgPassedWrap.querySelectorAll('input[data-role="passed"]:checked')).map(cb=>parseInt(cb.value,10));
+    const showerVal = sgShowerSel.value;
+    const shower = showerVal === "" ? null : parseInt(showerVal,10);
+    const known = sgKnownToggle.checked;
+    const knownCard = (shower!==null && known) ? sgKnownCardSel.value : null;
+
+    if(shower !== null && passed.includes(shower)){
+      showWarning("The player who showed a card can't also be marked as passed.", "block");
+      return;
+    }
+    if(suggester === shower){
+      showWarning("The suggesting player can't show a card to themselves.", "block");
+      return;
+    }
+
+    // check passed players for contradictions (already confirmed holding one of the 3 cards)
+    if(passed.length){
+      const { facts } = computeFacts();
+      const trio = [suspect, weapon, room];
+      for(const p of passed){
+        for(const c of trio){
+          if(facts[c] && facts[c][p] === "yes"){
+            showWarning(`⚠ Conflict: ${colName(p)} is already known to hold "${c}" — they can't have passed on this suggestion.`, "block");
+            return;
+          }
+        }
+      }
+    }
+
+    if(knownCard){
+      const check = validateForm();
+      if(!check.ok){
+        return; // hard conflict already flashed
+      }
+    }
+
+    state.log.push({ suggester, suspect, weapon, room, passed, shower, knownCard });
+    saveState();
+    clearWarning();
+    renderAll();
+  });
+
+  function describeLogEntry(e){
+    let txt = `<b>${colName(e.suggester)}</b> suggested <b>${e.suspect}</b> / <b>${e.weapon}</b> / <b>${e.room}</b>. `;
+    if(e.passed.length){
+      txt += e.passed.map(colName).join(", ") + ` <span class="tag pass">passed</span> `;
+    }
+    if(e.shower!==null){
+      txt += `${colName(e.shower)} <span class="tag shown">showed a card</span>`;
+      if(e.knownCard) txt += ` (${e.knownCard})`;
+      else txt += ` (unknown which)`;
+    } else if(!e.passed.length){
+      txt += `<span class="tag none">no one else at the table</span>`;
+    } else {
+      txt += `<span class="tag none">no card shown</span>`;
+    }
+    return txt;
+  }
+
+  function renderLog(){
+    const wrap = document.getElementById("logList");
+    wrap.innerHTML = "";
+    if(!state.log.length){
+      wrap.innerHTML = '<div class="empty-note">No suggestions logged yet.</div>';
+      return;
+    }
+    state.log.forEach((e, idx) => {
+      const row = document.createElement("div");
+      row.className = "log-entry";
+      const txt = document.createElement("div");
+      txt.className = "txt";
+      txt.innerHTML = describeLogEntry(e);
+      const del = document.createElement("button");
+      del.className = "secondary";
+      del.style.padding = "5px 9px";
+      del.textContent = "Remove";
+      del.addEventListener("click", () => {
+        state.log.splice(idx,1);
+        saveState();
+        renderAll();
+      });
+      row.appendChild(txt);
+      row.appendChild(del);
+      wrap.appendChild(row);
+    });
+  }
+
+  // ---------- Deduction engine ----------
+  function computeFacts(){
+    const facts = {};
+    const conflicts = [];
+    ALL_CARDS.forEach(card => facts[card] = {});
+
+    const columns = state.players.map((_,i)=>i).concat([CASE]);
+
+    function setFact(card, col, val){
+      const cur = facts[card][col];
+      if(cur && cur !== val){
+        conflicts.push(`Contradiction on "${card}" / ${colName(col)}: already ${cur}, now trying to set ${val}.`);
+        return;
+      }
+      facts[card][col] = val;
+    }
+
+    Object.keys(state.manual).forEach(k => {
+      const idxSep = k.lastIndexOf("|");
+      const card = k.substring(0, idxSep);
+      const colRaw = k.substring(idxSep+1);
+      const col = colRaw === CASE ? CASE : parseInt(colRaw,10);
+      if(ALL_CARDS.includes(card) && columns.includes(col)){
+        facts[card][col] = state.manual[k];
+      }
+    });
+
+    state.myCards.forEach(card => setFact(card, state.me, "yes"));
+
+    state.log.forEach(e => {
+      const trio = [e.suspect, e.weapon, e.room];
+      e.passed.forEach(p => trio.forEach(card => setFact(card, p, "no")));
+      if(e.shower !== null && e.knownCard){
+        setFact(e.knownCard, e.shower, "yes");
+      }
+    });
+
+    let orConstraints = state.log
+      .filter(e => e.shower !== null && !e.knownCard)
+      .map(e => ({ player: e.shower, options: [e.suspect, e.weapon, e.room] }));
+
+    let changed = true;
+    let iterations = 0;
+    while(changed && iterations < 100){
+      changed = false;
+      iterations++;
+
+      ALL_CARDS.forEach(card => {
+        const yesCols = columns.filter(c => facts[card][c] === "yes");
+        if(yesCols.length >= 1){
+          columns.forEach(c => {
+            if(!yesCols.includes(c) && facts[card][c] !== "no"){
+              facts[card][c] = "no"; changed = true;
+            }
+          });
+        } else {
+          const noCols = columns.filter(c => facts[card][c] === "no");
+          const unknownCols = columns.filter(c => facts[card][c] === undefined);
+          if(noCols.length === columns.length - 1 && unknownCols.length === 1){
+            facts[card][unknownCols[0]] = "yes"; changed = true;
+          }
+        }
+      });
+
+      CATEGORIES.forEach(cat => {
+        const yesCards = cat.cards.filter(c => facts[c][CASE] === "yes");
+        if(yesCards.length >= 1){
+          cat.cards.forEach(c => {
+            if(!yesCards.includes(c) && facts[c][CASE] !== "no"){
+              facts[c][CASE] = "no"; changed = true;
+            }
+          });
+        } else {
+          const noCards = cat.cards.filter(c => facts[c][CASE] === "no");
+          const unknownCards = cat.cards.filter(c => facts[c][CASE] === undefined);
+          if(noCards.length === cat.cards.length - 1 && unknownCards.length === 1){
+            facts[unknownCards[0]][CASE] = "yes"; changed = true;
+          }
+        }
+      });
+
+      state.players.forEach((p, idx) => {
+        const yesCount = ALL_CARDS.filter(c => facts[c][idx] === "yes").length;
+        const unknownCards = ALL_CARDS.filter(c => facts[c][idx] === undefined);
+        if(yesCount >= p.handSize && unknownCards.length){
+          unknownCards.forEach(c => { facts[c][idx] = "no"; changed = true; });
+        } else if(unknownCards.length && (p.handSize - yesCount) === unknownCards.length){
+          unknownCards.forEach(c => { facts[c][idx] = "yes"; changed = true; });
+        }
+      });
+
+      const stillActive = [];
+      orConstraints.forEach(con => {
+        const remaining = con.options.filter(c => facts[c][con.player] !== "no");
+        const alreadyYes = con.options.some(c => facts[c][con.player] === "yes");
+        if(alreadyYes){ changed = true; return; }
+        if(remaining.length === 1){
+          facts[remaining[0]][con.player] = "yes";
+          changed = true;
+          return;
+        }
+        if(remaining.length === 0){
+          conflicts.push(`Unresolvable: ${colName(con.player)} was shown one of ${con.options.join(", ")} but all are ruled out for them.`);
+          return;
+        }
+        stillActive.push(con);
+      });
+      orConstraints = stillActive;
+    }
+
+    return { facts, conflicts, columns };
+  }
+
+  // ---------- Manual cell toggling ----------
+  function manualKey(card, col){ return card + "|" + col; }
+  function cycleManual(card, col){
+    const key = manualKey(card, col);
+    const cur = state.manual[key];
+    if(cur === undefined) state.manual[key] = "yes";
+    else if(cur === "yes") state.manual[key] = "no";
+    else delete state.manual[key];
+    saveState();
+    renderAll(false);
+  }
+
+  // ---------- Grid render ----------
+  function renderGrid(facts, columns){
+    const table = document.getElementById("grid");
+    table.innerHTML = "";
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    const th0 = document.createElement("th"); th0.textContent = "Card"; th0.style.textAlign="left";
+    headRow.appendChild(th0);
+    columns.forEach(col => {
+      const th = document.createElement("th");
+      if(col === CASE){ th.textContent = "Case File"; th.className="case-col"; }
+      else {
+        th.textContent = state.players[col].name + (col===state.me ? " (me)" : "");
+        if(col===state.me) th.className="me-col";
+      }
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    CATEGORIES.forEach(cat => {
+      const catRow = document.createElement("tr");
+      catRow.className = "cat-header";
+      const td = document.createElement("td");
+      td.colSpan = columns.length + 1;
+      td.textContent = cat.label;
+      catRow.appendChild(td);
+      tbody.appendChild(catRow);
+
+      cat.cards.forEach(card => {
+        const tr = document.createElement("tr");
+        const nameTd = document.createElement("td");
+        nameTd.className = "card-name";
+        nameTd.textContent = card;
+        tr.appendChild(nameTd);
+
+        columns.forEach(col => {
+          const td = document.createElement("td");
+          const val = facts[card][col];
+          const manualVal = state.manual[manualKey(card,col)];
+          const cell = document.createElement("div");
+          let cls = "cell ";
+          if(val === "yes") cls += (col===CASE ? "solved" : "yes");
+          else if(val === "no") cls += "no";
+          else cls += "unknown";
+          if(manualVal !== undefined) cls += " manual";
+          cell.className = cls;
+          cell.textContent = val === "yes" ? "✓" : (val === "no" ? "✕" : "");
+          cell.title = "Tap to set manually";
+          cell.addEventListener("click", () => cycleManual(card, col));
+          td.appendChild(cell);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    });
+    table.appendChild(tbody);
+  }
+
+  // ---------- Solution summary ----------
+  function renderSolution(facts){
+    const wrap = document.getElementById("solutionGrid");
+    wrap.innerHTML = "";
+    CATEGORIES.forEach(cat => {
+      const box = document.createElement("div");
+      box.className = "sol-card";
+      const h = document.createElement("h4"); h.textContent = cat.label;
+      box.appendChild(h);
+
+      const solved = cat.cards.find(c => facts[c][CASE] === "yes");
+      const possible = cat.cards.filter(c => facts[c][CASE] !== "no");
+
+      const answer = document.createElement("div");
+      if(solved){
+        answer.className = "answer";
+        answer.textContent = solved;
+      } else {
+        answer.className = "answer unsolved";
+        answer.textContent = possible.length + " possibilit" + (possible.length===1?"y":"ies") + " remain";
+      }
+      box.appendChild(answer);
+
+      if(!solved && possible.length){
+        const ul = document.createElement("ul");
+        possible.forEach(c => { const li = document.createElement("li"); li.textContent = c; ul.appendChild(li); });
+        box.appendChild(ul);
+      }
+      wrap.appendChild(box);
+    });
+  }
+
+  function renderConflicts(conflicts){
+    const el = document.getElementById("conflictBanner");
+    if(conflicts.length){
+      el.innerHTML = '<div class="conflict-banner">⚠ Logic conflict detected — double check manual entries and the suggestion log:<br>' +
+        conflicts.slice(0,5).map(c=>"• "+c).join("<br>") + '</div>';
+    } else {
+      el.innerHTML = "";
+    }
+  }
+
+  document.getElementById("resetAll").addEventListener("click", () => {
+    if(confirm("This will erase all players, cards, and the suggestion log. Continue?")){
+      state = freshState(4);
+      numPlayersSel.value = 4;
+      saveState();
+      closeDrawer();
+      renderAll();
+    }
+  });
+
+  // ---------- Master render ----------
+  function renderAll(rebuildRoster){
+    if(rebuildRoster !== false) renderSuggesterAndRoster();
+    renderPlayersList();
+    renderMyCards();
+    renderLog();
+    const { facts, conflicts, columns } = computeFacts();
+    renderConflicts(conflicts);
+    renderGrid(facts, columns);
+    renderSolution(facts);
+    validateForm();
+  }
+
+  renderAll();
+
+  // ---------- PWA service worker ----------
+  if("serviceWorker" in navigator && location.protocol !== "file:"){
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
