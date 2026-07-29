@@ -475,7 +475,7 @@
           // Legacy saves predate the setup gate — treat them as already started
           // so existing games aren't suddenly locked out.
           if(parsed.gameStarted === undefined) parsed.gameStarted = true;
-          (parsed.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; });
+          (parsed.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; if(e.deleted===undefined) e.deleted = false; });
           return parsed;
         }
       }
@@ -779,10 +779,16 @@
     clearWarning();
   });
 
+  function findLastActiveIndex(){
+    for(let i=state.log.length-1;i>=0;i--){ if(!state.log[i].deleted) return i; }
+    return -1;
+  }
+
   document.getElementById("undoLogBtn").addEventListener("click", () => {
-    if(!state.log.length) return;
-    const last = state.log[state.log.length-1];
-    state.log.pop();
+    const idx = findLastActiveIndex();
+    if(idx === -1) return;
+    const last = state.log[idx];
+    last.deleted = true;
     if(last.type === "skip") state.currentTurn = last.player;
     else state.currentTurn = last.suggester;
     saveState();
@@ -1037,36 +1043,69 @@
     return txt;
   }
 
+  let showRemoved = false;
+
   function renderLog(){
     const wrap = document.getElementById("logList");
     wrap.innerHTML = "";
-    if(!state.log.length){ wrap.innerHTML = '<div class="empty-note">No suggestions logged yet.</div>'; return; }
+
+    const toggleRow = document.createElement("div");
+    toggleRow.style.marginBottom = "10px";
+    const toggleBtn = document.createElement("button");
+    toggleBtn.className = "secondary small";
+    toggleBtn.textContent = showRemoved ? "Hide removed entries" : "Show removed entries";
+    toggleBtn.addEventListener("click", () => { showRemoved = !showRemoved; renderLog(); });
+    toggleRow.appendChild(toggleBtn);
+    wrap.appendChild(toggleRow);
+
+    const visibleCount = state.log.filter(e => showRemoved || !e.deleted).length;
+    if(!visibleCount){ wrap.appendChild(Object.assign(document.createElement("div"), { className:"empty-note", textContent:"No suggestions logged yet." })); return; }
+
     for(let idx = state.log.length-1; idx>=0; idx--){
       const e = state.log[idx];
+      if(e.deleted && !showRemoved) continue;
+
       const row = document.createElement("div"); row.className = "log-entry";
       const txt = document.createElement("div"); txt.className = "txt";
-      txt.innerHTML = "<span style='color:var(--parchment-dim); font-family:\"Courier New\",monospace; font-size:11px;'>#" + (idx+1) + "</span> " + narrateEntry(e);
-      const del = document.createElement("button");
-      del.className = "secondary"; del.style.padding = "5px 9px"; del.textContent = "Remove";
-      del.addEventListener("click", () => {
-        const isLast = (idx === state.log.length - 1);
-        state.log.splice(idx,1);
-        if(isLast){
-          // Removing the most recent entry must also rewind whose turn it is,
-          // otherwise the next player's turn gets silently skipped.
-          if(e.type === "skip") state.currentTurn = e.player;
-          else state.currentTurn = e.suggester;
-          turnChoiceRow.style.display = "flex";
-          suggestBody.style.display = "none";
-          seq = null;
-          saveState();
-          renderAll({ rebuildRoster:true, forceResetSequence:true });
-        } else {
+      const numTag = "<span style='color:var(--parchment-dim); font-family:\"Courier New\",monospace; font-size:11px;'>#" + (idx+1) + "</span> ";
+      if(e.deleted){
+        txt.innerHTML = numTag + '<span style="text-decoration:line-through; opacity:.6;">' + narrateEntry(e) + '</span> <span class="tag skip">REMOVED</span>';
+      } else {
+        txt.innerHTML = numTag + narrateEntry(e);
+      }
+
+      const btn = document.createElement("button");
+      btn.className = "secondary"; btn.style.padding = "5px 9px";
+
+      if(e.deleted){
+        btn.textContent = "Restore";
+        btn.addEventListener("click", () => {
+          e.deleted = false;
           saveState();
           renderAll({ rebuildRoster:false });
-        }
-      });
-      row.appendChild(txt); row.appendChild(del);
+        });
+      } else {
+        btn.textContent = "Remove";
+        btn.addEventListener("click", () => {
+          const isLastActive = (idx === findLastActiveIndex());
+          e.deleted = true;
+          if(isLastActive){
+            // Removing the most recent active entry must also rewind whose turn it is,
+            // otherwise the next player's turn gets silently skipped.
+            if(e.type === "skip") state.currentTurn = e.player;
+            else state.currentTurn = e.suggester;
+            turnChoiceRow.style.display = "flex";
+            suggestBody.style.display = "none";
+            seq = null;
+            saveState();
+            renderAll({ rebuildRoster:true, forceResetSequence:true });
+          } else {
+            saveState();
+            renderAll({ rebuildRoster:false });
+          }
+        });
+      }
+      row.appendChild(txt); row.appendChild(btn);
       wrap.appendChild(row);
     }
   }
@@ -1098,7 +1137,7 @@
 
     state.myCards.forEach(card => setFact(card, state.me, "yes"));
 
-    const suggestions = state.log.filter(e => e.type === "suggestion");
+    const suggestions = state.log.filter(e => e.type === "suggestion" && !e.deleted);
     suggestions.forEach(e => {
       const trio = [e.suspect, e.weapon, e.room];
       e.passed.forEach(p => trio.forEach(card => setFact(card, p, "no")));
@@ -1298,10 +1337,11 @@
       solution[cat.label] = solved || cat.cards.filter(c => facts[c][CASE] !== "no");
     });
     const readableLog = state.log.map((e, i) => {
-      if(e.type === "skip") return { turn: i+1, type:"skip", player: colName(e.player) };
+      if(e.type === "skip") return { turn: i+1, type:"skip", player: colName(e.player), removed: !!e.deleted };
       return {
         turn: i+1, type:"suggestion", suggester: colName(e.suggester), suspect: e.suspect, weapon: e.weapon, room: e.room,
-        passed: e.passed.map(colName), shower: e.shower !== null ? colName(e.shower) : null, knownCard: e.knownCard
+        passed: e.passed.map(colName), shower: e.shower !== null ? colName(e.shower) : null, knownCard: e.knownCard,
+        removed: !!e.deleted
       };
     });
     return {
@@ -1352,7 +1392,7 @@
         if(state.direction === undefined) state.direction = "cw";
         if(state.currentTurn === undefined) state.currentTurn = 0;
         if(state.activeTab === undefined) state.activeTab = "suggest";
-        (state.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; });
+        (state.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; if(e.deleted===undefined) e.deleted = false; });
         numPlayersSel.value = state.players.length;
         directionSel.value = state.direction;
         saveState();
