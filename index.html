@@ -82,6 +82,10 @@
   .drawer-head h2{ font-size:16px; color:var(--brass-bright); }
   .drawer-close{ background:transparent; border:none; color:var(--parchment-dim); font-size:22px; cursor:pointer; padding:2px 8px; }
   .drawer-body{ overflow-y:auto; padding:14px 0; flex:1; }
+  .drawer-footer{ border-top:1px solid var(--brass); padding:14px 16px calc(6px + var(--safe-bottom)); }
+  .setup-checklist{ font-family:'Courier New',monospace; font-size:12px; line-height:1.7; }
+  .setup-checklist .ok{ color:var(--green-bright); }
+  .setup-checklist .missing{ color:var(--red-bright); }
   .drawer-hint{ background:rgba(184,147,90,.12); border:1px solid var(--brass); border-radius:6px; padding:10px 12px; font-size:12.5px; color:var(--parchment); margin:0 16px 16px; }
 
   .accordion-item{ border-bottom:1px solid var(--line); }
@@ -140,8 +144,9 @@
   .table-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:6px; -webkit-overflow-scrolling:touch; }
   table.grid{ border-collapse:collapse; width:100%; font-family:'Courier New',monospace; font-size:12.5px; min-width:520px; }
   table.grid th, table.grid td{ border:1px solid var(--line); padding:8px 10px; text-align:center; }
-  table.grid thead th{ background:#111823; color:var(--brass-bright); font-size:11px; white-space:nowrap; }
-  table.grid td.card-name{ text-align:left; background:#161d27; color:var(--parchment); white-space:nowrap; font-family:Georgia,serif; font-size:13px; }
+  table.grid thead th{ background:#111823; color:var(--brass-bright); font-size:11px; white-space:nowrap; position:sticky; top:0; z-index:2; }
+  table.grid td.card-name, table.grid th:first-child{ text-align:left; background:#161d27; color:var(--parchment); white-space:nowrap; font-family:Georgia,serif; font-size:13px; position:sticky; left:0; z-index:1; }
+  table.grid thead th:first-child{ z-index:3; }
   .holds{ color:var(--green-bright); font-weight:bold; }
   .nope{ color:var(--red-bright); }
   .unk{ color:var(--parchment-dim); }
@@ -250,7 +255,7 @@
       <span class="stamp">Confidential</span>
     </div>
     <div class="pending-counts" id="pendingCounts"></div>
-    <div class="tabbar">
+    <div class="tabbar" id="tabbar">
       <button class="tabbtn" data-tab="suggest">Suggest</button>
       <button class="tabbtn" data-tab="log">Log</button>
       <button class="tabbtn" data-tab="grid">Grid</button>
@@ -259,6 +264,16 @@
   </header>
 
   <div id="conflictBanner"></div>
+
+  <!-- SETUP GATE (shown until names are set and my cards are entered) -->
+  <section class="panel" id="setupGateMain" style="display:none;">
+    <h2>Finish Setup to Start</h2>
+    <div class="empty-note" style="margin-bottom:10px;">Before logging suggestions, give every player a real name and enter your own cards.</div>
+    <div id="setupChecklistMain"></div>
+    <div class="row" style="margin-top:12px;">
+      <button id="openSetupFromGate">Open Setup Menu</button>
+    </div>
+  </section>
 
   <!-- SUGGEST TAB -->
   <section class="tabpanel" id="tab-suggest">
@@ -410,6 +425,11 @@
     </div>
 
   </div>
+
+  <div class="drawer-footer" id="drawerFooter">
+    <div id="setupChecklistDrawer" style="margin-bottom:10px;"></div>
+    <button class="block" id="startGameBtn">Start Game</button>
+  </div>
 </nav>
 
 <!-- RESPONSE MODAL -->
@@ -437,7 +457,7 @@
 
   const DEFAULT_STATE = {
     numPlayers: 4, players: [], me: 0, direction: "cw", currentTurn: 0,
-    myCards: [], manual: {}, log: [], activeTab: "suggest"
+    myCards: [], manual: {}, log: [], activeTab: "suggest", gameStarted: false
   };
 
   let state = loadState();
@@ -452,6 +472,9 @@
           if(parsed.direction === undefined) parsed.direction = "cw";
           if(parsed.currentTurn === undefined) parsed.currentTurn = 0;
           if(parsed.activeTab === undefined) parsed.activeTab = "suggest";
+          // Legacy saves predate the setup gate — treat them as already started
+          // so existing games aren't suddenly locked out.
+          if(parsed.gameStarted === undefined) parsed.gameStarted = true;
           (parsed.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; });
           return parsed;
         }
@@ -532,6 +555,52 @@
       if(!isOpen) item.classList.add("open");
     });
   });
+
+  // ---------- Setup gate ----------
+  function isSetupComplete(){
+    const namesOk = state.players.every((p,i) => p.name && p.name.trim() !== "" && p.name.trim() !== ("Player "+(i+1)));
+    const me = state.players[state.me];
+    const cardsOk = !!me && me.handSize > 0 && state.myCards.length === me.handSize;
+    return namesOk && cardsOk;
+  }
+
+  function checklistHTML(){
+    const namesOk = state.players.every((p,i) => p.name && p.name.trim() !== "" && p.name.trim() !== ("Player "+(i+1)));
+    const me = state.players[state.me];
+    const cardsOk = !!me && me.handSize > 0 && state.myCards.length === me.handSize;
+    const namesLine = namesOk
+      ? '<div class="ok">✓ All player names entered</div>'
+      : '<div class="missing">✗ Change every player name from the default ("Player 1", etc.)</div>';
+    const cardsLine = cardsOk
+      ? '<div class="ok">✓ Your cards entered (' + state.myCards.length + ' of ' + (me?me.handSize:0) + ')</div>'
+      : '<div class="missing">✗ Enter your cards (' + state.myCards.length + ' of ' + (me?me.handSize:0) + ' so far)</div>';
+    return '<div class="setup-checklist">' + namesLine + cardsLine + '</div>';
+  }
+
+  function renderSetupGate(){
+    const ready = isSetupComplete();
+    document.getElementById("setupChecklistDrawer").innerHTML = checklistHTML();
+    document.getElementById("setupChecklistMain").innerHTML = checklistHTML();
+    document.getElementById("startGameBtn").disabled = !ready;
+
+    const gateMain = document.getElementById("setupGateMain");
+    const tabbarEl = document.getElementById("tabbar");
+    const started = !!state.gameStarted;
+    gateMain.style.display = started ? "none" : "block";
+    tabbarEl.style.display = started ? "flex" : "none";
+    document.querySelectorAll(".tabpanel").forEach(p => { p.style.display = started ? "" : "none"; });
+  }
+
+  document.getElementById("startGameBtn").addEventListener("click", () => {
+    if(!isSetupComplete()) return;
+    state.gameStarted = true;
+    saveState();
+    closeDrawer();
+    renderSetupGate();
+    setTab(state.activeTab || "suggest");
+  });
+
+  document.getElementById("openSetupFromGate").addEventListener("click", () => { openDrawer(); });
 
   // ---------- Modal ----------
   const modalOverlay = document.getElementById("modalOverlay");
@@ -870,11 +939,18 @@
         });
       }
     } else if(suggester === state.me){
-      // Point 4: someone showing to me. All 3 trio cards, colored by whether shown to me before.
-      trio.forEach(c => {
-        const alreadyShown = hasPlayerShownCardToMe(c, respIdx);
-        html += '<button class="card-option ' + (alreadyShown ? "opt-red" : "opt-green") + '" data-card="' + c + '">' + c + (alreadyShown ? " (already shown to me)" : "") + '</button>';
-      });
+      // Point 4: someone showing to me. Only the trio cards not already ruled out for them
+      // (excludes cards I hold myself, cards already proven held by someone else, or already solved to the case file).
+      const { facts } = computeFacts();
+      const possible = trio.filter(c => facts[c] && facts[c][respIdx] !== "no");
+      if(!possible.length){
+        html += '<div class="modal-empty">None of these three are logically possible for ' + colName(respIdx) + ' — this shouldn\'t happen unless something else needs fixing.</div>';
+      } else {
+        possible.forEach(c => {
+          const alreadyShown = hasPlayerShownCardToMe(c, respIdx);
+          html += '<button class="card-option ' + (alreadyShown ? "opt-red" : "opt-green") + '" data-card="' + c + '">' + c + (alreadyShown ? " (already shown to me)" : "") + '</button>';
+        });
+      }
     } else {
       html += '<div class="modal-empty">You won\'t see which specific card is shown here.</div>';
       html += '<button class="card-option opt-green" data-card="__unknown__">Showed a card (unknown which)</button>';
@@ -973,9 +1049,22 @@
       const del = document.createElement("button");
       del.className = "secondary"; del.style.padding = "5px 9px"; del.textContent = "Remove";
       del.addEventListener("click", () => {
+        const isLast = (idx === state.log.length - 1);
         state.log.splice(idx,1);
-        saveState();
-        renderAll({ rebuildRoster:false });
+        if(isLast){
+          // Removing the most recent entry must also rewind whose turn it is,
+          // otherwise the next player's turn gets silently skipped.
+          if(e.type === "skip") state.currentTurn = e.player;
+          else state.currentTurn = e.suggester;
+          turnChoiceRow.style.display = "flex";
+          suggestBody.style.display = "none";
+          seq = null;
+          saveState();
+          renderAll({ rebuildRoster:true, forceResetSequence:true });
+        } else {
+          saveState();
+          renderAll({ rebuildRoster:false });
+        }
       });
       row.appendChild(txt); row.appendChild(del);
       wrap.appendChild(row);
@@ -1315,6 +1404,8 @@
     if(state.activeTab === "log") renderLog();
     if(state.activeTab === "grid"){ renderSolution(result); renderGrids(result); }
     if(state.activeTab === "pending") renderPendingDetail(result);
+
+    renderSetupGate();
   }
 
   // init tab UI
