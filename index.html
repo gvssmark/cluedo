@@ -370,6 +370,22 @@
     </div>
 
     <div class="drawer-section">
+      <h3>④ Export / Import</h3>
+      <div class="empty-note" style="margin-bottom:8px;">Export your case data to review it, back it up, or share it for help.</div>
+      <div class="row" style="margin-bottom:8px;">
+        <button class="secondary block" id="exportBtn">Download case data (.json)</button>
+      </div>
+      <div class="row" style="margin-bottom:8px;">
+        <button class="secondary block" id="copyBtn">Copy case data to clipboard</button>
+      </div>
+      <textarea id="exportBox" readonly rows="6" style="width:100%; font-family:'Courier New',monospace; font-size:11px; background:#111823; color:var(--parchment-dim); border:1px solid var(--line); border-radius:4px; padding:8px; resize:vertical;"></textarea>
+      <div style="height:12px;"></div>
+      <label>Import case data (.json)</label>
+      <input type="file" id="importFile" accept="application/json">
+      <div class="empty-note" style="margin-top:6px;">Importing replaces everything currently in the app.</div>
+    </div>
+
+    <div class="drawer-section">
       <h3>Danger Zone</h3>
       <button class="danger block" id="resetAll">Reset entire case</button>
     </div>
@@ -1189,6 +1205,102 @@
       closeDrawer();
       renderAll({ forceResetSequence:true });
     }
+  });
+
+  // ---------- Export / Import ----------
+  function buildExportPayload(){
+    // Human-readable export: includes raw state plus a plain-English rendition
+    // of the suggestion log and current solution, so it's easy to review or share.
+    const { facts } = computeFacts();
+    const solution = {};
+    CATEGORIES.forEach(cat => {
+      const solved = cat.cards.find(c => facts[c][CASE] === "yes");
+      solution[cat.label] = solved || (cat.cards.filter(c => facts[c][CASE] !== "no"));
+    });
+    const readableLog = state.log.map((e, i) => ({
+      turn: i+1,
+      suggester: colName(e.suggester),
+      suspect: e.suspect,
+      weapon: e.weapon,
+      room: e.room,
+      passed: e.passed.map(colName),
+      shower: e.shower !== null ? colName(e.shower) : null,
+      knownCard: e.knownCard
+    }));
+    return {
+      exportedAt: new Date().toISOString(),
+      players: state.players.map((p,i)=>({ name:p.name, handSize:p.handSize, isMe: i===state.me })),
+      direction: state.direction,
+      myCards: state.myCards,
+      manualOverrides: state.manual,
+      suggestionLog: readableLog,
+      currentSolutionGuess: solution,
+      rawState: state
+    };
+  }
+
+  function exportJSONString(){
+    return JSON.stringify(buildExportPayload(), null, 2);
+  }
+
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    const json = exportJSONString();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cluedo-case-" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    document.getElementById("exportBox").value = json;
+  });
+
+  document.getElementById("copyBtn").addEventListener("click", () => {
+    const json = exportJSONString();
+    const box = document.getElementById("exportBox");
+    box.value = json;
+    box.focus();
+    box.select();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(json).then(() => {
+        alert("Case data copied to clipboard. Paste it into the chat.");
+      }).catch(() => {
+        alert("Couldn't auto-copy — the text is selected below, copy it manually (Ctrl/Cmd+C).");
+      });
+    } else {
+      alert("The text is selected below — copy it manually (Ctrl/Cmd+C).");
+    }
+  });
+
+  document.getElementById("importFile").addEventListener("change", (evt) => {
+    const file = evt.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const parsed = JSON.parse(reader.result);
+        const incoming = parsed.rawState || parsed; // accept either full export or raw state
+        if(!incoming || !incoming.players || !incoming.players.length){
+          throw new Error("File doesn't look like case data.");
+        }
+        if(!confirm("Import this case data? It will replace everything currently in the app.")) return;
+        state = incoming;
+        if(state.direction === undefined) state.direction = "cw";
+        if(state.currentTurn === undefined) state.currentTurn = 0;
+        if(state.gridCollapsed === undefined) state.gridCollapsed = false;
+        numPlayersSel.value = state.players.length;
+        directionSel.value = state.direction;
+        saveState();
+        closeDrawer();
+        renderAll({ forceResetSequence:true });
+      }catch(err){
+        alert("Couldn't import that file: " + err.message);
+      }
+      evt.target.value = "";
+    };
+    reader.readAsText(file);
   });
 
   // ---------- Master render ----------
