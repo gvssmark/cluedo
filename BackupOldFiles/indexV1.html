@@ -941,7 +941,7 @@
           const alreadyShown = hasIShownCardToPlayer(c, suggester);
           const disable = alreadyShown && anyGreen;
           html += '<button class="card-option ' + (alreadyShown ? "opt-red" : "opt-green") + '" ' +
-            (disable ? "disabled" : "") + ' data-card="' + c + '">' + c + (alreadyShown ? (disable ? " — locked, already shown to them, pick another" : " — already shown, but it's your only option") : "") + '</button>';
+            (disable ? "disabled" : "") + ' data-card="' + c + '">' + c + (alreadyShown ? " (already shown to them)" : "") + '</button>';
         });
       }
     } else if(suggester === state.me){
@@ -952,10 +952,9 @@
       if(!possible.length){
         html += '<div class="modal-empty">None of these three are logically possible for ' + colName(respIdx) + ' — this shouldn\'t happen unless something else needs fixing.</div>';
       } else {
-        html += '<div class="modal-empty" style="margin-bottom:10px;">Pick exactly the card ' + colName(respIdx) + ' showed you this time — even a red one, if they showed the same card again.</div>';
         possible.forEach(c => {
           const alreadyShown = hasPlayerShownCardToMe(c, respIdx);
-          html += '<button class="card-option ' + (alreadyShown ? "opt-red" : "opt-green") + '" data-card="' + c + '">' + c + (alreadyShown ? " — seen before, click if shown again" : "") + '</button>';
+          html += '<button class="card-option ' + (alreadyShown ? "opt-red" : "opt-green") + '" data-card="' + c + '">' + c + (alreadyShown ? " (already shown to me)" : "") + '</button>';
         });
       }
     } else {
@@ -977,34 +976,13 @@
 
   // ---------- Validation ----------
   function showWarning(msg){
-    showWarningWithFix(msg, -1);
-  }
-  function showWarningWithFix(msg, rowIndex){
-    sgWarningBox.innerHTML = msg + (rowIndex >= 0 ? ' <button class="secondary small" id="fixResponseBtn" style="margin-left:6px;">Fix this response</button>' : "");
+    sgWarningBox.textContent = msg;
     sgWarningBox.className = "warning-box show";
     sgWarningBox.classList.remove("flash-warn");
     void sgWarningBox.offsetWidth;
     sgWarningBox.classList.add("flash-warn");
-    if(rowIndex >= 0){
-      const btn = document.getElementById("fixResponseBtn");
-      if(btn) btn.addEventListener("click", () => rewindSeqTo(rowIndex));
-    }
   }
-  function clearWarning(){ sgWarningBox.className = "warning-box"; sgWarningBox.innerHTML = ""; }
-
-  // Jumps the in-progress round back to a specific responder's row, undoing
-  // that response and everything after it in one step (rather than repeated
-  // "Undo last response" clicks working backward one action at a time).
-  function rewindSeqTo(rowIndex){
-    if(!seq) return;
-    for(let j = rowIndex; j < seq.order.length; j++) seq.statusList[j] = "pending";
-    seq.shower = null;
-    seq.knownCard = null;
-    seq.history = [];
-    undoResponseBtn.disabled = true;
-    clearWarning();
-    renderSequence();
-  }
+  function clearWarning(){ sgWarningBox.className = "warning-box"; sgWarningBox.textContent = ""; }
 
   function trySubmit(){
     if(!seq || !isSequenceComplete()) return;
@@ -1019,23 +997,21 @@
     for(const p of passed){
       for(const c of trio){
         if(facts[c] && facts[c][p] === "yes"){
-          const rowIdx = seq.order.indexOf(p);
-          showWarningWithFix("⚠ Conflict: " + colName(p) + ' is already known to hold "' + c + '" — they can\'t have passed on this suggestion.', rowIdx);
+          showWarning("⚠ Conflict: " + colName(p) + ' is already known to hold "' + c + '" — they can\'t have passed on this suggestion. Use "Undo last response" to fix it.');
           return;
         }
       }
     }
     if(shower !== null && knownCard){
       const currentForShower = facts[knownCard] ? facts[knownCard][shower] : undefined;
-      const showerRowIdx = seq.order.indexOf(shower);
       if(currentForShower === "no"){
-        showWarningWithFix("⚠ Conflict: " + colName(shower) + ' was already established to NOT have "' + knownCard + '".', showerRowIdx);
+        showWarning("⚠ Conflict: " + colName(shower) + ' was already established to NOT have "' + knownCard + '". Use "Undo last response" to fix it.');
         return;
       }
       const allCols = state.players.map((_,i)=>i).concat([CASE]);
       const holder = allCols.find(c => c !== shower && facts[knownCard] && facts[knownCard][c] === "yes");
       if(holder !== undefined){
-        showWarningWithFix('⚠ Conflict: "' + knownCard + '" is already known to be held by ' + colName(holder) + ".", showerRowIdx);
+        showWarning('⚠ Conflict: "' + knownCard + '" is already known to be held by ' + colName(holder) + ". Use \"Undo last response\" to fix it.");
         return;
       }
     }
@@ -1444,21 +1420,6 @@
   });
 
   // ---------- Master render ----------
-  // Annotates each dropdown option with what's already known about that card,
-  // so it's obvious at a glance which suggestions would actually produce new information.
-  function annotatedLabel(card, facts){
-    const allCols = state.players.map((_,i)=>i).concat([CASE]);
-    const holder = allCols.find(c => facts[card][c] === "yes");
-    if(holder === undefined) return card;
-    if(holder === CASE) return card + " — SOLVED (case file)";
-    return card + " — known (" + colName(holder) + (holder===state.me ? ", me" : "") + ")";
-  }
-  function refreshCategoryLabels(facts){
-    [sgSuspectSel, sgWeaponSel, sgRoomSel].forEach(sel => {
-      Array.from(sel.options).forEach(o => { o.textContent = annotatedLabel(o.value, facts); });
-    });
-  }
-
   function renderAll(opts){
     opts = opts || {};
     const rebuildRoster = opts.rebuildRoster !== false;
@@ -1479,7 +1440,6 @@
     const result = computeFacts();
     renderConflicts(result.conflicts);
     renderHeaderCounts(result);
-    refreshCategoryLabels(result.facts);
 
     if(state.activeTab === "log") renderLog();
     if(state.activeTab === "grid"){ renderSolution(result); renderGrids(result); }
