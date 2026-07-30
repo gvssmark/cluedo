@@ -113,7 +113,6 @@
     font-family:'Courier New',monospace; font-size:14px; width:100%;
   }
   select:focus, input:focus{ outline:2px solid var(--brass); outline-offset:1px; }
-  select.solved-select{ border:2px solid var(--green-bright); background:#132518; color:var(--green-bright); font-weight:bold; }
   button{
     background:var(--brass); color:#1b1408; border:none; border-radius:4px; padding:10px 14px;
     font-family:'Courier New',monospace; font-size:12.5px; font-weight:bold; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; transition:.15s background;
@@ -1294,16 +1293,24 @@
   }
 
   // ---------- Pending tab & header counts ----------
-  function renderHeaderCounts(result){
+  function pendingCounts(result){
     const facts = result.facts;
+    const counts = {};
+    CATEGORIES.forEach(cat => {
+      counts[cat.key] = cat.cards.filter(c => {
+        const allCols = state.players.map((_,i)=>i).concat([CASE]);
+        return !allCols.some(col => facts[c][col] === "yes");
+      }).length;
+    });
+    return counts;
+  }
+
+  function renderHeaderCounts(result){
+    const counts = pendingCounts(result);
     const el = document.getElementById("pendingCounts");
     el.innerHTML = CATEGORIES.map(cat => {
-      const solved = cat.cards.find(c => facts[c][CASE] === "yes");
-      if(solved){
-        return '<span>' + cat.label + ': <b class="solved">' + solved + '</b></span>';
-      }
-      const possible = cat.cards.filter(c => facts[c][CASE] !== "no").length;
-      return '<span>' + cat.label + ': <b>' + possible + ' possible</b></span>';
+      const n = counts[cat.key];
+      return '<span>' + cat.label + ': ' + (n===0 ? '<b class="solved">solved</b>' : '<b>'+n+' pending</b>') + '</span>';
     }).join("");
   }
 
@@ -1447,11 +1454,8 @@
     return card + " — known (" + colName(holder) + (holder===state.me ? ", me" : "") + ")";
   }
   function refreshCategoryLabels(facts){
-    const pairs = [[sgSuspectSel, CATEGORIES[0]], [sgWeaponSel, CATEGORIES[1]], [sgRoomSel, CATEGORIES[2]]];
-    pairs.forEach(([sel, cat]) => {
+    [sgSuspectSel, sgWeaponSel, sgRoomSel].forEach(sel => {
       Array.from(sel.options).forEach(o => { o.textContent = annotatedLabel(o.value, facts); });
-      const solved = cat.cards.some(c => facts[c][CASE] === "yes");
-      sel.classList.toggle("solved-select", solved);
     });
   }
 
