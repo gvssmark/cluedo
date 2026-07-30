@@ -383,13 +383,6 @@
           <option value="ccw">Anti-clockwise (Player 1 → last → …)</option>
         </select>
         <div class="empty-note" style="margin-top:6px;">This follows the seating order in the names list below.</div>
-        <div style="height:14px;"></div>
-        <label>House Rules</label>
-        <select id="ruleModeSel">
-          <option value="normal">Normal Version</option>
-          <option value="family">Family Version</option>
-        </select>
-        <div class="empty-note" style="margin-top:6px;">Family Version lets a player pass if everything they could show has already been shown before — the ask just moves to the next player instead of forcing a repeat.</div>
       </div>
     </div>
 
@@ -445,22 +438,6 @@
   <div class="modal-box" id="modalBox"></div>
 </div>
 
-<!-- VERSION PICKER (shown once, for brand-new games only) -->
-<div class="modal-overlay" id="versionOverlay">
-  <div class="modal-box" style="max-width:480px;">
-    <h3>Which rules are we playing?</h3>
-    <button class="card-option opt-green" id="pickNormal" style="display:block;">
-      <b>Normal Version</b><br>
-      <span style="font-weight:normal; font-size:12.5px;">Strict Cluedo rules — if a player holds a matching card, they must show one, even if they've shown it before.</span>
-    </button>
-    <button class="card-option opt-green" id="pickFamily" style="display:block;">
-      <b>Family Version</b><br>
-      <span style="font-weight:normal; font-size:12.5px;">House rule — if everything a player could show has already been shown before, they may pass instead, and the ask moves on to the next player.</span>
-    </button>
-    <div class="empty-note">You can change this later from the hamburger menu.</div>
-  </div>
-</div>
-
 <script>
 (function(){
   "use strict";
@@ -481,7 +458,7 @@
 
   const DEFAULT_STATE = {
     numPlayers: 4, players: [], me: 0, direction: "cw", currentTurn: 0,
-    myCards: [], manual: {}, log: [], activeTab: "suggest", gameStarted: false, ruleMode: null
+    myCards: [], manual: {}, log: [], activeTab: "suggest", gameStarted: false
   };
 
   let state = loadState();
@@ -499,10 +476,7 @@
           // Legacy saves predate the setup gate — treat them as already started
           // so existing games aren't suddenly locked out.
           if(parsed.gameStarted === undefined) parsed.gameStarted = true;
-          // Legacy saves also predate rule-mode selection — default to Normal Rules
-          // silently rather than interrupting a game already in progress.
-          if(parsed.ruleMode === undefined) parsed.ruleMode = "normal";
-          (parsed.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; if(e.deleted===undefined) e.deleted = false; if(!e.repeatPassers) e.repeatPassers = []; });
+          (parsed.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; if(e.deleted===undefined) e.deleted = false; });
           return parsed;
         }
       }
@@ -671,13 +645,6 @@
     state.direction = directionSel.value;
     saveState();
     renderAll({ rebuildRoster:false, forceResetSequence:true });
-  });
-
-  const ruleModeSel = document.getElementById("ruleModeSel");
-  ruleModeSel.value = (state.ruleMode === "family") ? "family" : "normal";
-  ruleModeSel.addEventListener("change", () => {
-    state.ruleMode = ruleModeSel.value;
-    saveState();
   });
 
   document.getElementById("recomputeHands").addEventListener("click", () => {
@@ -1050,23 +1017,13 @@
 
     const { facts } = computeFacts();
     const trio = [suspect, weapon, room];
-    const repeatPassers = [];
     for(const p of passed){
-      const yesCards = trio.filter(c => facts[c] && facts[c][p] === "yes");
-      if(!yesCards.length) continue; // ordinary pass, no conflict
-      const hasUnknown = trio.some(c => facts[c] && facts[c][p] === undefined);
-      if(state.ruleMode === "family" && !hasUnknown){
-        // Family Rules: they already hold something from this trio, but every card in
-        // it is already fully known for them (nothing left that could be new info) —
-        // a legitimate pass under the house rule, not a contradiction.
-        repeatPassers.push(p);
-      } else {
-        const rowIdx = seq.order.indexOf(p);
-        const why = hasUnknown
-          ? ' — and they still have an undetermined card in this trio, so Family Rules can\'t apply here either.'
-          : '.';
-        showWarningWithFix("⚠ Conflict: " + colName(p) + ' is already known to hold "' + yesCards[0] + '" — they can\'t have passed on this suggestion' + why, rowIdx);
-        return;
+      for(const c of trio){
+        if(facts[c] && facts[c][p] === "yes"){
+          const rowIdx = seq.order.indexOf(p);
+          showWarningWithFix("⚠ Conflict: " + colName(p) + ' is already known to hold "' + c + '" — they can\'t have passed on this suggestion.', rowIdx);
+          return;
+        }
       }
     }
     if(shower !== null && knownCard){
@@ -1084,7 +1041,7 @@
       }
     }
 
-    state.log.push({ type:"suggestion", suggester, suspect, weapon, room, passed, repeatPassers, shower, knownCard });
+    state.log.push({ type:"suggestion", suggester, suspect, weapon, room, passed, shower, knownCard });
     state.currentTurn = nextIdx(suggester);
     saveState();
     seq = null;
@@ -1099,10 +1056,7 @@
       return colName(e.player) + (e.player===state.me?" (me)":"") + " had no suggestion this turn.";
     }
     let txt = "<b>" + colName(e.suggester) + "</b> suggested <b>" + e.suspect + "</b> / <b>" + e.weapon + "</b> / <b>" + e.room + "</b>. ";
-    const repeatPassers = e.repeatPassers || [];
-    const ordinaryPassed = e.passed.filter(p => !repeatPassers.includes(p));
-    if(ordinaryPassed.length) txt += ordinaryPassed.map(colName).join(", ") + ' <span class="tag pass">passed</span> ';
-    if(repeatPassers.length) txt += repeatPassers.map(colName).join(", ") + ' <span class="tag pass">passed (already shown before — Family Rules)</span> ';
+    if(e.passed.length) txt += e.passed.map(colName).join(", ") + ' <span class="tag pass">passed</span> ';
     if(e.shower!==null){
       txt += colName(e.shower) + ' <span class="tag shown">showed a card</span>';
       txt += e.knownCard ? (" (" + e.knownCard + ")") : " (unknown which)";
@@ -1211,10 +1165,7 @@
     const suggestions = state.log.filter(e => e.type === "suggestion" && !e.deleted);
     suggestions.forEach(e => {
       const trio = [e.suspect, e.weapon, e.room];
-      e.passed.forEach(p => {
-        if((e.repeatPassers||[]).includes(p)) return; // family-mode repeat pass: no new info to record
-        trio.forEach(card => setFact(card, p, "no"));
-      });
+      e.passed.forEach(p => trio.forEach(card => setFact(card, p, "no")));
       if(e.shower !== null && e.knownCard) setFact(e.knownCard, e.shower, "yes");
     });
 
@@ -1406,14 +1357,12 @@
       if(e.type === "skip") return { turn: i+1, type:"skip", player: colName(e.player), removed: !!e.deleted };
       return {
         turn: i+1, type:"suggestion", suggester: colName(e.suggester), suspect: e.suspect, weapon: e.weapon, room: e.room,
-        passed: e.passed.map(colName), repeatPassers: (e.repeatPassers||[]).map(colName),
-        shower: e.shower !== null ? colName(e.shower) : null, knownCard: e.knownCard,
+        passed: e.passed.map(colName), shower: e.shower !== null ? colName(e.shower) : null, knownCard: e.knownCard,
         removed: !!e.deleted
       };
     });
     return {
       exportedAt: new Date().toISOString(),
-      ruleMode: state.ruleMode,
       players: state.players.map((p,i)=>({ name:p.name, handSize:p.handSize, isMe: i===state.me })),
       direction: state.direction,
       myCards: state.myCards,
@@ -1460,12 +1409,9 @@
         if(state.direction === undefined) state.direction = "cw";
         if(state.currentTurn === undefined) state.currentTurn = 0;
         if(state.activeTab === undefined) state.activeTab = "suggest";
-        if(state.gameStarted === undefined) state.gameStarted = true;
-        if(state.ruleMode === undefined || state.ruleMode === null) state.ruleMode = "normal";
-        (state.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; if(e.deleted===undefined) e.deleted = false; if(!e.repeatPassers) e.repeatPassers = []; });
+        (state.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; if(e.deleted===undefined) e.deleted = false; });
         numPlayersSel.value = state.players.length;
         directionSel.value = state.direction;
-        ruleModeSel.value = state.ruleMode;
         saveState();
         closeDrawer();
         turnChoiceRow.style.display = "flex";
@@ -1482,13 +1428,11 @@
       state = freshState(4);
       numPlayersSel.value = 4;
       directionSel.value = state.direction;
-      ruleModeSel.value = "normal";
       saveState();
       closeDrawer();
       turnChoiceRow.style.display = "flex";
       suggestBody.style.display = "none";
       renderAll({ forceResetSequence:true });
-      versionOverlay.classList.add("open");
     }
   });
 
@@ -1538,20 +1482,6 @@
     if(state.activeTab === "pending") renderPendingDetail(result);
 
     renderSetupGate();
-  }
-
-  // ---------- Version picker (Normal vs Family Rules) ----------
-  const versionOverlay = document.getElementById("versionOverlay");
-  function chooseRuleMode(mode){
-    state.ruleMode = mode;
-    saveState();
-    ruleModeSel.value = mode;
-    versionOverlay.classList.remove("open");
-  }
-  document.getElementById("pickNormal").addEventListener("click", () => chooseRuleMode("normal"));
-  document.getElementById("pickFamily").addEventListener("click", () => chooseRuleMode("family"));
-  if(state.ruleMode !== "normal" && state.ruleMode !== "family"){
-    versionOverlay.classList.add("open");
   }
 
   // init tab UI

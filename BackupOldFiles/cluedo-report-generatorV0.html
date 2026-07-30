@@ -248,10 +248,7 @@
     const log = (state.log || []).filter(e => e.type !== "skip" && !e.deleted);
     log.forEach(e => {
       const trio = [e.suspect, e.weapon, e.room];
-      (e.passed||[]).forEach(p => {
-        if((e.repeatPassers||[]).includes(p)) return; // family-mode repeat pass: no new info
-        trio.forEach(card => setFact(card, p, "no"));
-      });
+      (e.passed||[]).forEach(p => trio.forEach(card => setFact(card, p, "no")));
       if(e.shower !== null && e.shower !== undefined && e.knownCard){
         setFact(e.knownCard, e.shower, "yes");
       }
@@ -336,10 +333,7 @@
 
   // ---------- Plain-English log narration ----------
   function narrateEntry(e, colName){
-    const repeatSet = new Set(e.repeatPassers||[]);
-    const ordinaryNames = (e.passed||[]).filter(p => !repeatSet.has(p)).map(colName);
-    const repeatNames = (e.passed||[]).filter(p => repeatSet.has(p)).map(colName);
-    const passedNames = ordinaryNames.concat(repeatNames.map(n => n + " (already shown before — Family Rules)"));
+    const passedNames = (e.passed||[]).map(colName);
     const hasShower = e.shower !== null && e.shower !== undefined;
     const cardText = hasShower ? (e.knownCard ? ('showed ' + e.knownCard) : "showed a card — which one wasn't recorded") : null;
 
@@ -367,7 +361,6 @@
     const seating = players.map((p,i)=> p.name + (i===me ? " (me)" : "") + " (" + (p.handSize||0) + " cards)").join(" → ");
     html += '<div class="meta">';
     html += '<b>Players (seating order, ' + (state.direction === "ccw" ? "anti-clockwise" : "clockwise") + '):</b> ' + seating + '<br>';
-    html += '<b>Rules:</b> ' + (state.ruleMode === "family" ? "Family Version (repeat-pass allowed)" : "Normal Version") + '<br>';
     if((state.myCards||[]).length){
       html += '<b>My cards:</b> ' + state.myCards.join(", ") + '<br>';
     }
