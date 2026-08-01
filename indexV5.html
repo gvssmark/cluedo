@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Case File — Cluedo Deduction Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1b2430">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Case File">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<style>
+  :root{
+    --ink:#1b2430; --ink-2:#232f3e; --parchment:#ece4d3; --parchment-dim:#cfc4a8;
+    --brass:#b8935a; --brass-bright:#d9b571;
+    --green:#4a7a58; --green-bright:#6fae80;
+    --red:#9a3b3b; --red-bright:#c25a5a;
+    --line:#3a475a; --shadow: 0 6px 18px rgba(0,0,0,0.35);
+    --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse at top left, #23303f 0%, #161d27 55%, #10151d 100%);
+    color:var(--parchment); font-family: Georgia, 'Times New Roman', serif;
+    min-height:100vh; padding: calc(16px + var(--safe-top)) 14px calc(80px + var(--safe-bottom));
+  }
+  h1,h2,h3{ font-family: 'Palatino Linotype', Georgia, serif; letter-spacing:.02em; margin:0 0 4px; }
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  header.masthead{
+    display:flex; flex-direction:column; gap:8px;
+    border-bottom: 2px solid var(--brass); padding-bottom:10px; margin-bottom:14px;
+    position:sticky; top:0; z-index:20; background: linear-gradient(180deg, #161d27 88%, transparent); padding-top:4px;
+  }
+  .masthead-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+  .masthead .left{ display:flex; align-items:center; gap:12px; min-width:0; }
+  .hamburger-btn{
+    background:transparent; border:1px solid var(--brass); color:var(--brass-bright);
+    width:42px; height:42px; border-radius:6px; font-size:20px; line-height:1;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
+  }
+  .hamburger-btn:hover{ background:rgba(184,147,90,.15); }
+  .title-block{ display:flex; flex-direction:column; min-width:0; }
+  h1{ font-size:22px; color:var(--parchment); white-space:nowrap; }
+  .subtitle{ font-family:'Courier New',monospace; font-size:10.5px; color:var(--parchment-dim); letter-spacing:.06em; }
+  .stamp{
+    font-family: 'Courier New', monospace; font-size:10px; letter-spacing:.14em;
+    color:var(--brass-bright); border:1px solid var(--brass); padding:4px 8px; text-transform:uppercase; opacity:.85; white-space:nowrap;
+  }
+  .pending-counts{
+    display:flex; gap:14px; flex-wrap:wrap; font-family:'Courier New',monospace; font-size:11px; color:var(--parchment-dim);
+  }
+  .pending-counts b{ color:var(--brass-bright); }
+  .pending-counts .solved{ color:var(--green-bright); }
+
+  .tabbar{ display:flex; gap:6px; }
+  .tabbtn{
+    flex:1; background:#111823; color:var(--parchment-dim); border:1px solid var(--line); border-radius:6px;
+    padding:10px 6px; font-family:'Courier New',monospace; font-size:11.5px; font-weight:bold; text-transform:uppercase;
+    letter-spacing:.05em; cursor:pointer; text-align:center;
+  }
+  .tabbtn.active{ background:var(--brass); color:#1b1408; border-color:var(--brass); }
+
+  .tabpanel{ display:none; }
+  .tabpanel.active{ display:block; }
+
+  .overlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:40; opacity:0; pointer-events:none; transition:opacity .2s ease; }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+  .drawer{
+    position:fixed; top:0; left:0; bottom:0; width:min(340px, 88vw);
+    background: linear-gradient(180deg, var(--ink-2), var(--ink)); border-right:1px solid var(--line);
+    z-index:41; transform:translateX(-105%); transition:transform .25s ease;
+    display:flex; flex-direction:column; box-shadow: var(--shadow);
+    padding: calc(14px + var(--safe-top)) 0 calc(14px + var(--safe-bottom));
+  }
+  .drawer.open{ transform:translateX(0); }
+  .drawer-head{ display:flex; align-items:center; justify-content:space-between; padding:0 16px 14px; border-bottom:1px solid var(--line); }
+  .drawer-head h2{ font-size:16px; color:var(--brass-bright); }
+  .drawer-close{ background:transparent; border:none; color:var(--parchment-dim); font-size:22px; cursor:pointer; padding:2px 8px; }
+  .drawer-body{ overflow-y:auto; padding:14px 0; flex:1; }
+  .drawer-footer{ border-top:1px solid var(--brass); padding:14px 16px calc(6px + var(--safe-bottom)); }
+  .setup-checklist{ font-family:'Courier New',monospace; font-size:12px; line-height:1.7; }
+  .setup-checklist .ok{ color:var(--green-bright); }
+  .setup-checklist .missing{ color:var(--red-bright); }
+  .drawer-hint{ background:rgba(184,147,90,.12); border:1px solid var(--brass); border-radius:6px; padding:10px 12px; font-size:12.5px; color:var(--parchment); margin:0 16px 16px; }
+
+  .accordion-item{ border-bottom:1px solid var(--line); }
+  .accordion-head{
+    display:flex; align-items:center; justify-content:space-between; padding:13px 16px; cursor:pointer; user-select:none;
+  }
+  .accordion-head h3{
+    font-size:12.5px; color:var(--brass-bright); text-transform:uppercase; letter-spacing:.08em; font-family:'Courier New',monospace; margin:0;
+  }
+  .accordion-head .chev{ font-family:'Courier New',monospace; color:var(--parchment-dim); transition:transform .2s ease; }
+  .accordion-item.open .accordion-head .chev{ transform:rotate(90deg); }
+  .accordion-body{ display:none; padding:0 16px 18px; }
+  .accordion-item.open .accordion-body{ display:block; }
+
+  .panel{
+    background: linear-gradient(180deg, var(--ink-2), var(--ink)); border:1px solid var(--line); border-radius:6px;
+    padding:16px 16px; margin-bottom:18px; box-shadow: var(--shadow);
+  }
+  .panel h2{ font-size:16px; color:var(--brass-bright); border-bottom:1px solid var(--line); padding-bottom:8px; margin-bottom:14px; }
+
+  .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+  label{ font-size:11.5px; color:var(--parchment-dim); font-family:'Courier New',monospace; text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:4px;}
+  select, input[type=text], input[type=number], textarea{
+    background:#111823; color:var(--parchment); border:1px solid var(--line); border-radius:4px; padding:9px 9px;
+    font-family:'Courier New',monospace; font-size:14px; width:100%;
+  }
+  select:focus, input:focus{ outline:2px solid var(--brass); outline-offset:1px; }
+  select.solved-select{ border:2px solid var(--green-bright); background:#132518; color:var(--green-bright); font-weight:bold; }
+  button{
+    background:var(--brass); color:#1b1408; border:none; border-radius:4px; padding:10px 14px;
+    font-family:'Courier New',monospace; font-size:12.5px; font-weight:bold; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; transition:.15s background;
+  }
+  button:hover{ background:var(--brass-bright); }
+  button.secondary{ background:transparent; color:var(--brass-bright); border:1px solid var(--brass); }
+  button.secondary:hover{ background:rgba(184,147,90,0.15); }
+  button.danger{ background:var(--red); color:#fff0f0; }
+  button.danger:hover{ background:var(--red-bright); }
+  button.block{ width:100%; }
+  button:disabled{ opacity:.4; cursor:not-allowed; }
+  button.small{ padding:6px 10px; font-size:11px; }
+
+  .players-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+  .player-row{ display:flex; gap:8px; align-items:center; background:#111823; border:1px solid var(--line); border-radius:4px; padding:6px 8px; flex-wrap:wrap; }
+  .player-row input[type=text]{ flex:1; min-width:90px; width:auto; }
+  .player-row .hs-box{ width:52px; text-align:center; flex-shrink:0; }
+  .player-row .hs-label{ font-size:10px; margin:0; flex-shrink:0; }
+  .player-row button{ flex-shrink:0; padding:6px 9px; font-size:11px; }
+
+  .cards-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .cat-block h3{ font-size:12.5px; color:var(--brass-bright); font-family:'Courier New',monospace; text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; border-bottom:1px dashed var(--line); padding-bottom:4px;}
+  .card-check{ display:flex; align-items:center; gap:7px; padding:4px 0; font-size:14px; }
+  .card-check input{ accent-color:var(--brass); width:16px; height:16px; flex-shrink:0; }
+  .card-check.disabled{ opacity:.35; }
+  .cards-counter{ font-family:'Courier New',monospace; font-size:12px; color:var(--brass-bright); margin-bottom:10px; }
+  .cards-counter.over{ color:var(--red-bright); }
+
+  .table-scroll{ overflow-x:auto; border:1px solid var(--line); border-radius:6px; -webkit-overflow-scrolling:touch; }
+  table.grid{ border-collapse:collapse; width:100%; font-family:'Courier New',monospace; font-size:12.5px; min-width:520px; }
+  table.grid th, table.grid td{ border:1px solid var(--line); padding:8px 10px; text-align:center; }
+  table.grid thead th{ background:#111823; color:var(--brass-bright); font-size:11px; white-space:nowrap; position:sticky; top:0; z-index:2; }
+  table.grid td.card-name, table.grid th:first-child{ text-align:left; background:#161d27; color:var(--parchment); white-space:nowrap; font-family:Georgia,serif; font-size:13px; position:sticky; left:0; z-index:1; }
+  table.grid thead th:first-child{ z-index:3; }
+  .holds{ color:var(--green-bright); font-weight:bold; }
+  .nope{ color:var(--red-bright); }
+  .unk{ color:var(--parchment-dim); }
+  .solution{ background:var(--green); color:#eafff0; font-weight:bold; }
+  .tag-manual{ display:block; font-family:'Courier New',monospace; font-size:9px; color:var(--brass-bright); font-weight:normal; }
+
+  .solution-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:20px; }
+  .sol-card{ background:#111823; border:1px solid var(--line); border-radius:6px; padding:12px 12px; }
+  .sol-card h4{ margin:0 0 8px; font-size:11px; color:var(--brass-bright); text-transform:uppercase; letter-spacing:.06em; font-family:'Courier New',monospace;}
+  .sol-card .answer{ font-size:15px; color:var(--green-bright); font-weight:bold; }
+  .sol-card .answer.unsolved{ color:var(--parchment-dim); font-weight:normal; font-size:12.5px; }
+
+  .turn-banner{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    background:#111823; border:1px solid var(--brass); border-radius:6px; padding:10px 14px; margin-bottom:14px;
+  }
+  .turn-banner .who{ font-size:15px; color:var(--brass-bright); }
+  .turn-banner .who b{ color:var(--parchment); }
+  .turn-banner .dir{ font-family:'Courier New',monospace; font-size:11px; color:var(--parchment-dim); }
+
+  .choice-row{ display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+  .choice-row button{ flex:1; min-width:160px; }
+
+  .sugg-form{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:14px;}
+  @media (min-width:640px){ .sugg-form{ grid-template-columns:repeat(3,1fr); } }
+  .sugg-form .field{ display:flex; flex-direction:column; }
+
+  .seq-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    background:#111823; border:1px solid var(--line); border-radius:5px; padding:9px 12px; margin-bottom:6px;
+  }
+  .seq-row.active{ border-color:var(--brass); box-shadow: 0 0 0 1px var(--brass); }
+  .seq-row.pending{ opacity:.5; }
+  .seq-row .seq-name{ font-size:14px; }
+  .seq-badge{ font-family:'Courier New',monospace; font-size:11px; padding:3px 8px; border-radius:3px; }
+  .seq-badge.passed{ background:rgba(154,59,59,.2); color:var(--red-bright); }
+  .seq-badge.shown{ background:rgba(74,122,88,.25); color:var(--green-bright); }
+  .seq-badge.pending-badge{ background:#232f3e; color:var(--parchment-dim); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:60; display:none; align-items:center; justify-content:center; padding:16px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-box{
+    background: linear-gradient(180deg, var(--ink-2), var(--ink)); border:1px solid var(--brass); border-radius:8px;
+    padding:18px 18px; max-width:420px; width:100%; box-shadow:var(--shadow); max-height:85vh; overflow-y:auto;
+  }
+  .modal-box h3{ font-size:15px; color:var(--brass-bright); margin-bottom:12px; }
+  .card-option{
+    display:block; width:100%; text-align:left; padding:11px 14px; border-radius:5px; margin-bottom:8px;
+    font-family:Georgia,serif; font-size:14px; font-weight:normal; letter-spacing:0; text-transform:none; border:1px solid var(--line);
+  }
+  .card-option.opt-green{ background:rgba(74,122,88,.3); color:var(--green-bright); border-color:var(--green-bright); }
+  .card-option.opt-green:hover{ background:rgba(74,122,88,.5); }
+  .card-option.opt-red{ background:var(--red); color:#fff; border-color:var(--red-bright); }
+  .card-option.opt-red:hover{ background:var(--red-bright); }
+  .card-option:disabled{ opacity:.55; cursor:not-allowed; }
+  .modal-pass-btn{ margin-top:6px; }
+  .modal-empty{ color:var(--parchment-dim); font-style:italic; font-size:13px; margin-bottom:10px; }
+
+  .log-list{ display:flex; flex-direction:column; gap:8px; }
+  .log-entry{ background:#111823; border:1px solid var(--line); border-radius:4px; padding:8px 12px; font-size:12.5px; display:flex; justify-content:space-between; gap:10px; align-items:center; flex-wrap:wrap; }
+  .log-entry .txt{ flex:1; min-width:200px; }
+  .log-entry .txt b{ color:var(--brass-bright); }
+  .log-entry .txt .tag{ font-family:'Courier New',monospace; font-size:11px; padding:1px 6px; border-radius:3px; margin-left:4px; display:inline-block; }
+  .tag.shown{ background:rgba(74,122,88,.25); color:var(--green-bright); }
+  .tag.pass{ background:rgba(154,59,59,.18); color:var(--red-bright); }
+  .tag.skip{ background:#232f3e; color:var(--parchment-dim); }
+
+  .conflict-banner{
+    background: rgba(154,59,59,.25); border:1px solid var(--red-bright); color:#ffd9d9;
+    padding:10px 14px; border-radius:6px; margin-bottom:16px; font-family:'Courier New',monospace; font-size:12.5px;
+  }
+  .warning-box{
+    background: rgba(154,59,59,.18); border:1px solid var(--red-bright); color:#ffd9d9;
+    padding:9px 12px; border-radius:6px; margin:8px 0 4px; font-size:12.5px; display:none;
+  }
+  .warning-box.show{ display:block; }
+  .warning-box.flash-warn{ animation: flashWarn .5s ease-in-out 3; }
+  @keyframes flashWarn{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.7); } }
+
+  .empty-note{ color:var(--parchment-dim); font-size:13px; font-style:italic; }
+  footer{ text-align:center; color:var(--parchment-dim); font-size:11px; font-family:'Courier New',monospace; margin-top:26px; opacity:.6;}
+
+  @media (max-width: 480px){
+    .cards-grid{ grid-template-columns:1fr 1fr; }
+    .solution-grid{ grid-template-columns:1fr; }
+    body{ padding-left:10px; padding-right:10px; }
+    .panel{ padding:14px 12px; }
+    .tabbtn{ font-size:10px; padding:9px 4px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="masthead-top">
+      <div class="left">
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Open menu">☰</button>
+        <div class="title-block">
+          <h1>🕵️ Case File</h1>
+          <span class="subtitle">Cluedo Deduction Tracker</span>
+        </div>
+      </div>
+      <span class="stamp">Confidential</span>
+    </div>
+    <div class="pending-counts" id="pendingCounts"></div>
+    <div class="tabbar" id="tabbar">
+      <button class="tabbtn" data-tab="suggest">Suggest</button>
+      <button class="tabbtn" data-tab="log">Log</button>
+      <button class="tabbtn" data-tab="grid">Grid</button>
+      <button class="tabbtn" data-tab="pending">Pending</button>
+    </div>
+  </header>
+
+  <div id="conflictBanner"></div>
+
+  <!-- SETUP GATE (shown until names are set and my cards are entered) -->
+  <section class="panel" id="setupGateMain" style="display:none;">
+    <h2>Finish Setup to Start</h2>
+    <div class="empty-note" style="margin-bottom:10px;">Before logging suggestions, give every player a real name and enter your own cards.</div>
+    <div id="setupChecklistMain"></div>
+    <div class="row" style="margin-top:12px;">
+      <button id="openSetupFromGate">Open Setup Menu</button>
+    </div>
+  </section>
+
+  <!-- SUGGEST TAB -->
+  <section class="tabpanel" id="tab-suggest">
+    <div class="panel">
+      <div class="turn-banner">
+        <div class="who">Turn: <b id="turnWho">—</b></div>
+        <div class="dir" id="turnDir"></div>
+      </div>
+
+      <div class="choice-row" id="turnChoiceRow">
+        <button id="chooseSuggestBtn">Log a Suggestion</button>
+        <button class="secondary" id="chooseSkipBtn">Skip This Turn (no suggestion)</button>
+      </div>
+
+      <div id="suggestBody" style="display:none;">
+        <div class="sugg-form" id="suggForm">
+          <div class="field">
+            <label>Suggesting player</label>
+            <select id="sgSuggester"></select>
+          </div>
+          <div class="field">
+            <label>Suspect</label>
+            <select id="sgSuspect"></select>
+          </div>
+          <div class="field">
+            <label>Weapon</label>
+            <select id="sgWeapon"></select>
+          </div>
+          <div class="field">
+            <label>Room</label>
+            <select id="sgRoom"></select>
+          </div>
+        </div>
+
+        <label>Asking around the table (in seating order)</label>
+        <div id="sequenceWrap"></div>
+
+        <div id="sgWarning" class="warning-box"></div>
+
+        <div class="row" style="margin-top:12px;">
+          <button class="secondary small" id="undoResponseBtn" disabled>Undo last response</button>
+          <button class="secondary small" id="cancelRoundBtn">Cancel, go back</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row">
+        <button class="secondary" id="undoLogBtn">Undo last log entry</button>
+        <button class="secondary" id="redoLogBtn">Redo (restore last removed)</button>
+      </div>
+      <div class="empty-note" id="redoHint" style="margin-top:8px; display:none;"></div>
+    </div>
+  </section>
+
+  <!-- LOG TAB -->
+  <section class="tabpanel" id="tab-log">
+    <div class="panel">
+      <h2>Suggestion Log (newest first)</h2>
+      <div class="log-list" id="logList"></div>
+    </div>
+  </section>
+
+  <!-- GRID TAB -->
+  <section class="tabpanel" id="tab-grid">
+    <div class="panel">
+      <h2>Case File Solution</h2>
+      <div class="solution-grid" id="solutionGrid"></div>
+    </div>
+    <div class="panel">
+      <h2>Deduction Grids</h2>
+      <div id="gridsWrap"></div>
+    </div>
+  </section>
+
+  <!-- PENDING TAB -->
+  <section class="tabpanel" id="tab-pending">
+    <div class="panel">
+      <h2>Still Undetermined</h2>
+      <div id="pendingDetail"></div>
+    </div>
+  </section>
+
+  <footer>Deductions update automatically from your cards, shown cards, passes, and logged suggestions. Data is saved locally on this device only.</footer>
+</div>
+
+<!-- HAMBURGER DRAWER (accordion) -->
+<div class="overlay" id="overlay"></div>
+<nav class="drawer" id="drawer" aria-label="Setup menu">
+  <div class="drawer-head">
+    <h2>Case Setup</h2>
+    <button class="drawer-close" id="drawerClose" aria-label="Close menu">✕</button>
+  </div>
+  <div class="drawer-hint" id="firstRunHint" style="display:none;">
+    Welcome, detective. Start below: choose how many are playing, name everyone, mark which one is you, then check off your own cards.
+  </div>
+  <div class="drawer-body" id="accordionWrap">
+
+    <div class="accordion-item open" data-acc="players">
+      <div class="accordion-head"><h3>① Players &amp; Turn Order</h3><span class="chev">▸</span></div>
+      <div class="accordion-body">
+        <label>Number of players</label>
+        <select id="numPlayers"></select>
+        <div style="height:10px;"></div>
+        <label>Play direction</label>
+        <select id="direction">
+          <option value="cw">Clockwise (Player 1 → 2 → 3 → …)</option>
+          <option value="ccw">Anti-clockwise (Player 1 → last → …)</option>
+        </select>
+        <div class="empty-note" style="margin-top:6px;">This follows the seating order in the names list below.</div>
+        <div style="height:14px;"></div>
+        <label>House Rules</label>
+        <select id="ruleModeSel">
+          <option value="normal">Normal Version</option>
+          <option value="family">Family Version</option>
+        </select>
+        <div class="empty-note" style="margin-top:6px;">Family Version lets a player pass if everything they could show has already been shown before — the ask just moves to the next player instead of forcing a repeat.</div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-acc="names">
+      <div class="accordion-head"><h3>② Names &amp; Who's Me</h3><span class="chev">▸</span></div>
+      <div class="accordion-body">
+        <div class="players-list" id="playersList"></div>
+        <button class="secondary block" id="recomputeHands">Recalculate default hand sizes</button>
+        <div class="empty-note" style="margin-top:8px;">Hand sizes are guessed evenly from the deal — edit if you know the real count.</div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-acc="cards">
+      <div class="accordion-head"><h3>③ My Cards</h3><span class="chev">▸</span></div>
+      <div class="accordion-body">
+        <div class="cards-counter" id="cardsCounter"></div>
+        <div class="cards-grid" id="myCardsGrid"></div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-acc="export">
+      <div class="accordion-head"><h3>④ Export / Import</h3><span class="chev">▸</span></div>
+      <div class="accordion-body">
+        <div class="empty-note" style="margin-bottom:8px;">Export your case data to review it, back it up, or share it for help.</div>
+        <button class="secondary block" id="exportBtn">Download case data (.json)</button>
+        <div style="height:8px;"></div>
+        <button class="secondary block" id="copyBtn">Copy case data to clipboard</button>
+        <textarea id="exportBox" readonly rows="6" style="margin-top:10px; font-size:11px; color:var(--parchment-dim); resize:vertical;"></textarea>
+        <div style="height:12px;"></div>
+        <label>Import case data (.json)</label>
+        <input type="file" id="importFile" accept="application/json">
+        <div class="empty-note" style="margin-top:6px;">Importing replaces everything currently in the app.</div>
+      </div>
+    </div>
+
+    <div class="accordion-item" data-acc="danger">
+      <div class="accordion-head"><h3>Danger Zone</h3><span class="chev">▸</span></div>
+      <div class="accordion-body">
+        <button class="danger block" id="resetAll">Reset entire case</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="drawer-footer" id="drawerFooter">
+    <div id="setupChecklistDrawer" style="margin-bottom:10px;"></div>
+    <button class="block" id="startGameBtn">Start Game</button>
+  </div>
+</nav>
+
+<!-- RESPONSE MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<!-- VERSION PICKER (shown once, for brand-new games only) -->
+<div class="modal-overlay" id="versionOverlay">
+  <div class="modal-box" style="max-width:480px;">
+    <h3>Which rules are we playing?</h3>
+    <button class="card-option opt-green" id="pickNormal" style="display:block;">
+      <b>Normal Version</b><br>
+      <span style="font-weight:normal; font-size:12.5px;">Strict Cluedo rules — if a player holds a matching card, they must show one, even if they've shown it before.</span>
+    </button>
+    <button class="card-option opt-green" id="pickFamily" style="display:block;">
+      <b>Family Version</b><br>
+      <span style="font-weight:normal; font-size:12.5px;">House rule — if everything a player could show has already been shown before, they may pass instead, and the ask moves on to the next player.</span>
+    </button>
+    <div class="empty-note">You can change this later from the hamburger menu.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const SUSPECTS = ["Miss Scarlett","Colonel Mustard","Mrs White","Reverend Green","Mrs Peacock","Professor Plum"];
+  const WEAPONS  = ["Candlestick","Knife","Lead Pipe","Revolver","Rope","Wrench"];
+  const ROOMS    = ["Kitchen","Ballroom","Conservatory","Dining Room","Billiard Room","Library","Lounge","Hall","Study"];
+  const CATEGORIES = [
+    {key:"suspect", label:"Suspects", cards:SUSPECTS},
+    {key:"weapon",  label:"Weapons",  cards:WEAPONS},
+    {key:"room",    label:"Rooms",    cards:ROOMS}
+  ];
+  const ALL_CARDS = SUSPECTS.concat(WEAPONS, ROOMS);
+  const CASE = "__case__";
+  const STORAGE_KEY = "cluedo_case_state_v3";
+
+  const isFirstRun = !localStorage.getItem(STORAGE_KEY);
+
+  const DEFAULT_STATE = {
+    numPlayers: 4, players: [], me: 0, direction: "cw", currentTurn: 0,
+    myCards: [], manual: {}, log: [], activeTab: "suggest", gameStarted: false, ruleMode: null
+  };
+
+  let state = loadState();
+  let seq = null; // transient in-progress round (not persisted)
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        if(parsed && parsed.players && parsed.players.length){
+          if(parsed.direction === undefined) parsed.direction = "cw";
+          if(parsed.currentTurn === undefined) parsed.currentTurn = 0;
+          if(parsed.activeTab === undefined) parsed.activeTab = "suggest";
+          // Legacy saves predate the setup gate — treat them as already started
+          // so existing games aren't suddenly locked out.
+          if(parsed.gameStarted === undefined) parsed.gameStarted = true;
+          // Legacy saves also predate rule-mode selection — default to Normal Rules
+          // silently rather than interrupting a game already in progress.
+          if(parsed.ruleMode === undefined) parsed.ruleMode = "normal";
+          (parsed.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; if(e.deleted===undefined) e.deleted = false; if(!e.repeatPassers) e.repeatPassers = []; });
+          return parsed;
+        }
+      }
+    }catch(e){}
+    return freshState(4);
+  }
+
+  function freshState(n){
+    const s = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    s.numPlayers = n; s.players = buildDefaultPlayers(n);
+    return s;
+  }
+
+  function buildDefaultPlayers(n){
+    const dealt = ALL_CARDS.length - 3;
+    const base = Math.floor(dealt / n);
+    const rem = dealt % n;
+    const players = [];
+    for(let i=0;i<n;i++) players.push({ name: "Player " + (i+1), handSize: base + (i < rem ? 1 : 0) });
+    return players;
+  }
+
+  function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+  function colName(col){
+    if(col===CASE) return "Case File";
+    return state.players[col] ? state.players[col].name : ("Player "+(col+1));
+  }
+
+  function nextIdx(idx){
+    const n = state.players.length;
+    return state.direction === "cw" ? (idx+1)%n : (idx-1+n)%n;
+  }
+
+  function askOrder(suggesterIdx){
+    const order = []; let cur = nextIdx(suggesterIdx); let guard = 0;
+    while(cur !== suggesterIdx && guard < 50){ order.push(cur); cur = nextIdx(cur); guard++; }
+    return order;
+  }
+
+  function hasIShownCardToPlayer(card, askerIdx){
+    return state.log.some(e => e.type==="suggestion" && e.shower===state.me && e.suggester===askerIdx && e.knownCard===card);
+  }
+  function hasPlayerShownCardToMe(card, playerIdx){
+    return state.log.some(e => e.type==="suggestion" && e.shower===playerIdx && e.suggester===state.me && e.knownCard===card);
+  }
+
+  // ---------- Tabs ----------
+  const tabButtons = Array.from(document.querySelectorAll(".tabbtn"));
+  function setTab(tab){
+    state.activeTab = tab;
+    saveState();
+    tabButtons.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+    document.querySelectorAll(".tabpanel").forEach(p => p.classList.toggle("active", p.id === "tab-"+tab));
+    if(tab === "log") renderLog();
+    if(tab === "grid"){ renderSolution(lastFacts); renderGrids(lastFacts); }
+    if(tab === "pending") renderPendingDetail(lastFacts);
+  }
+  tabButtons.forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+
+  // ---------- Drawer ----------
+  const drawer = document.getElementById("drawer");
+  const overlay = document.getElementById("overlay");
+  function openDrawer(){ drawer.classList.add("open"); overlay.classList.add("open"); }
+  function closeDrawer(){ drawer.classList.remove("open"); overlay.classList.remove("open"); }
+  document.getElementById("hamburgerBtn").addEventListener("click", openDrawer);
+  document.getElementById("drawerClose").addEventListener("click", closeDrawer);
+  overlay.addEventListener("click", closeDrawer);
+  if(isFirstRun){ document.getElementById("firstRunHint").style.display = "block"; openDrawer(); }
+
+  // ---------- Accordion ----------
+  document.querySelectorAll(".accordion-head").forEach(head => {
+    head.addEventListener("click", () => {
+      const item = head.parentElement;
+      const isOpen = item.classList.contains("open");
+      document.querySelectorAll(".accordion-item").forEach(i => i.classList.remove("open"));
+      if(!isOpen) item.classList.add("open");
+    });
+  });
+
+  // ---------- Setup gate ----------
+  function isSetupComplete(){
+    const namesOk = state.players.every((p,i) => p.name && p.name.trim() !== "" && p.name.trim() !== ("Player "+(i+1)));
+    const me = state.players[state.me];
+    const cardsOk = !!me && me.handSize > 0 && state.myCards.length === me.handSize;
+    return namesOk && cardsOk;
+  }
+
+  function checklistHTML(){
+    const namesOk = state.players.every((p,i) => p.name && p.name.trim() !== "" && p.name.trim() !== ("Player "+(i+1)));
+    const me = state.players[state.me];
+    const cardsOk = !!me && me.handSize > 0 && state.myCards.length === me.handSize;
+    const namesLine = namesOk
+      ? '<div class="ok">✓ All player names entered</div>'
+      : '<div class="missing">✗ Change every player name from the default ("Player 1", etc.)</div>';
+    const cardsLine = cardsOk
+      ? '<div class="ok">✓ Your cards entered (' + state.myCards.length + ' of ' + (me?me.handSize:0) + ')</div>'
+      : '<div class="missing">✗ Enter your cards (' + state.myCards.length + ' of ' + (me?me.handSize:0) + ' so far)</div>';
+    return '<div class="setup-checklist">' + namesLine + cardsLine + '</div>';
+  }
+
+  function renderSetupGate(){
+    const ready = isSetupComplete();
+    document.getElementById("setupChecklistDrawer").innerHTML = checklistHTML();
+    document.getElementById("setupChecklistMain").innerHTML = checklistHTML();
+    document.getElementById("startGameBtn").disabled = !ready;
+
+    const gateMain = document.getElementById("setupGateMain");
+    const tabbarEl = document.getElementById("tabbar");
+    const started = !!state.gameStarted;
+    gateMain.style.display = started ? "none" : "block";
+    tabbarEl.style.display = started ? "flex" : "none";
+    document.querySelectorAll(".tabpanel").forEach(p => { p.style.display = started ? "" : "none"; });
+  }
+
+  document.getElementById("startGameBtn").addEventListener("click", () => {
+    if(!isSetupComplete()) return;
+    state.gameStarted = true;
+    saveState();
+    closeDrawer();
+    renderSetupGate();
+    setTab(state.activeTab || "suggest");
+  });
+
+  document.getElementById("openSetupFromGate").addEventListener("click", () => { openDrawer(); });
+
+  // ---------- Modal ----------
+  const modalOverlay = document.getElementById("modalOverlay");
+  const modalBox = document.getElementById("modalBox");
+  function openModal(html){ modalBox.innerHTML = html; modalOverlay.classList.add("open"); }
+  function closeModal(){ modalOverlay.classList.remove("open"); modalBox.innerHTML = ""; }
+  modalOverlay.addEventListener("click", (e) => { if(e.target === modalOverlay) closeModal(); });
+
+  // ---------- Number of players ----------
+  const numPlayersSel = document.getElementById("numPlayers");
+  for(let n=3;n<=6;n++){
+    const o = document.createElement("option"); o.value = n; o.textContent = n + " players";
+    numPlayersSel.appendChild(o);
+  }
+  numPlayersSel.value = state.numPlayers;
+
+  numPlayersSel.addEventListener("change", () => {
+    const n = parseInt(numPlayersSel.value, 10);
+    const oldPlayers = state.players;
+    state.numPlayers = n;
+    const fresh = buildDefaultPlayers(n);
+    for(let i=0;i<n;i++){ if(oldPlayers[i]) fresh[i].name = oldPlayers[i].name; }
+    state.players = fresh;
+    if(state.me >= n) state.me = 0;
+    if(state.currentTurn >= n) state.currentTurn = 0;
+    state.log = state.log.filter(e => {
+      if(e.type==="skip") return e.player < n;
+      return e.suggester < n && (e.shower===null || e.shower < n) && e.passed.every(p=>p<n);
+    });
+    Object.keys(state.manual).forEach(k=>{
+      const idxSep = k.lastIndexOf("|"); const col = k.substring(idxSep+1);
+      if(col !== CASE && parseInt(col,10) >= n) delete state.manual[k];
+    });
+    saveState();
+    renderAll({ forceResetSequence:true });
+  });
+
+  const directionSel = document.getElementById("direction");
+  directionSel.value = state.direction;
+  directionSel.addEventListener("change", () => {
+    state.direction = directionSel.value;
+    saveState();
+    renderAll({ rebuildRoster:false, forceResetSequence:true });
+  });
+
+  const ruleModeSel = document.getElementById("ruleModeSel");
+  ruleModeSel.value = (state.ruleMode === "family") ? "family" : "normal";
+  ruleModeSel.addEventListener("change", () => {
+    state.ruleMode = ruleModeSel.value;
+    saveState();
+  });
+
+  document.getElementById("recomputeHands").addEventListener("click", () => {
+    const fresh = buildDefaultPlayers(state.players.length);
+    state.players.forEach((p,i)=> p.handSize = fresh[i].handSize);
+    saveState();
+    renderAll({ rebuildRoster:false });
+  });
+
+  // ---------- Players list ----------
+  function renderPlayersList(){
+    const wrap = document.getElementById("playersList");
+    wrap.innerHTML = "";
+    state.players.forEach((p, idx) => {
+      const row = document.createElement("div"); row.className = "player-row";
+      const nameInput = document.createElement("input");
+      nameInput.type = "text"; nameInput.value = p.name;
+      nameInput.addEventListener("input", () => {
+        p.name = nameInput.value || ("Player "+(idx+1));
+        saveState();
+        renderAll({ rebuildRoster:false, skipPlayersList:true });
+      });
+      row.appendChild(nameInput);
+
+      const hsLabel = document.createElement("label");
+      hsLabel.className = "hs-label"; hsLabel.style.marginBottom = "0"; hsLabel.textContent = "Cards:";
+      row.appendChild(hsLabel);
+
+      const hsInput = document.createElement("input");
+      hsInput.type = "number"; hsInput.min="0"; hsInput.max="21"; hsInput.className = "hs-box"; hsInput.value = p.handSize;
+      hsInput.addEventListener("input", () => {
+        p.handSize = parseInt(hsInput.value,10)||0;
+        saveState();
+        renderAll({ rebuildRoster:false, skipPlayersList:true });
+      });
+      row.appendChild(hsInput);
+
+      const meBtn = document.createElement("button");
+      meBtn.className = "secondary"; meBtn.textContent = (state.me===idx) ? "★ Me" : "Mark as me";
+      meBtn.addEventListener("click", () => { state.me = idx; saveState(); renderAll(); });
+      row.appendChild(meBtn);
+
+      wrap.appendChild(row);
+    });
+  }
+
+  // ---------- My cards ----------
+  function renderMyCards(){
+    const grid = document.getElementById("myCardsGrid");
+    grid.innerHTML = "";
+    const meHandSize = state.players[state.me] ? state.players[state.me].handSize : 0;
+    const counterEl = document.getElementById("cardsCounter");
+    const overLimit = state.myCards.length > meHandSize;
+    counterEl.textContent = state.myCards.length + " of " + meHandSize + " cards selected" + (overLimit ? "  — more checked than your hand size!" : "");
+    counterEl.className = "cards-counter" + (overLimit ? " over" : "");
+    const atLimit = state.myCards.length >= meHandSize;
+
+    CATEGORIES.forEach(cat => {
+      const block = document.createElement("div"); block.className = "cat-block";
+      const h = document.createElement("h3"); h.textContent = cat.label; block.appendChild(h);
+      cat.cards.forEach(card => {
+        const isChecked = state.myCards.includes(card);
+        const row = document.createElement("div");
+        row.className = "card-check" + (!isChecked && atLimit ? " disabled" : "");
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = isChecked;
+        if(!isChecked && atLimit) cb.disabled = true;
+        cb.addEventListener("change", () => {
+          if(cb.checked){
+            if(state.myCards.length >= meHandSize){ cb.checked = false; return; }
+            if(!state.myCards.includes(card)) state.myCards.push(card);
+          } else {
+            state.myCards = state.myCards.filter(c=>c!==card);
+          }
+          saveState(); renderAll({ rebuildRoster:false, skipPlayersList:true });
+        });
+        const lbl = document.createElement("span"); lbl.textContent = card;
+        row.appendChild(cb); row.appendChild(lbl);
+        block.appendChild(row);
+      });
+      grid.appendChild(block);
+    });
+  }
+
+  // ---------- Suggestion form static parts ----------
+  function fillCardSelect(sel, cards, preserveValue){
+    const prev = sel.value; sel.innerHTML = "";
+    cards.forEach(c => { const o = document.createElement("option"); o.value = c; o.textContent = c; sel.appendChild(o); });
+    if(preserveValue && cards.includes(prev)) sel.value = prev;
+  }
+
+  const sgSuggesterSel = document.getElementById("sgSuggester");
+  const sgSuspectSel = document.getElementById("sgSuspect");
+  const sgWeaponSel = document.getElementById("sgWeapon");
+  const sgRoomSel = document.getElementById("sgRoom");
+  const sequenceWrap = document.getElementById("sequenceWrap");
+  const sgWarningBox = document.getElementById("sgWarning");
+  const turnWhoEl = document.getElementById("turnWho");
+  const turnDirEl = document.getElementById("turnDir");
+  const suggestBody = document.getElementById("suggestBody");
+  const turnChoiceRow = document.getElementById("turnChoiceRow");
+  const undoResponseBtn = document.getElementById("undoResponseBtn");
+
+  fillCardSelect(sgSuspectSel, SUSPECTS);
+  fillCardSelect(sgWeaponSel, WEAPONS);
+  fillCardSelect(sgRoomSel, ROOMS);
+
+  [sgSuspectSel, sgWeaponSel, sgRoomSel].forEach(sel=>{
+    sel.addEventListener("change", () => { resetSequence(); renderSequence(); });
+  });
+
+  sgSuggesterSel.addEventListener("change", () => { resetSequence(); renderSequence(); });
+
+  document.getElementById("chooseSuggestBtn").addEventListener("click", () => {
+    turnChoiceRow.style.display = "none";
+    suggestBody.style.display = "block";
+    renderSuggesterAndRoster();
+    resetSequence();
+    renderSequence();
+  });
+
+  document.getElementById("chooseSkipBtn").addEventListener("click", () => {
+    state.log.push({ type:"skip", player: state.currentTurn });
+    state.currentTurn = nextIdx(state.currentTurn);
+    saveState();
+    renderAll({ rebuildRoster:true, forceResetSequence:true });
+  });
+
+  document.getElementById("cancelRoundBtn").addEventListener("click", () => {
+    turnChoiceRow.style.display = "flex";
+    suggestBody.style.display = "none";
+    seq = null;
+    clearWarning();
+  });
+
+  function findLastActiveIndex(){
+    for(let i=state.log.length-1;i>=0;i--){ if(!state.log[i].deleted) return i; }
+    return -1;
+  }
+
+  // Recomputes whose turn it is from whatever the current last active log entry is.
+  // Safe to call after ANY delete/restore, anywhere in the log — if the edited entry
+  // wasn't the most recent active one, this just leaves currentTurn where it already was.
+  function syncCurrentTurnToLog(){
+    const idx = findLastActiveIndex();
+    if(idx === -1) return; // no active history left; leave currentTurn as-is
+    const last = state.log[idx];
+    state.currentTurn = nextIdx(last.type === "skip" ? last.player : last.suggester);
+  }
+
+  function afterLogEdit(){
+    syncCurrentTurnToLog();
+    saveState();
+    turnChoiceRow.style.display = "flex";
+    suggestBody.style.display = "none";
+    seq = null;
+    renderAll({ rebuildRoster:true, forceResetSequence:true });
+  }
+
+  function findMostRecentlyRemovedIndex(){
+    for(let i=state.log.length-1;i>=0;i--){ if(state.log[i].deleted) return i; }
+    return -1;
+  }
+
+  function renderRedoButton(){
+    const idx = findMostRecentlyRemovedIndex();
+    const btn = document.getElementById("redoLogBtn");
+    const hint = document.getElementById("redoHint");
+    if(idx === -1){
+      btn.disabled = true;
+      hint.style.display = "none";
+    } else {
+      btn.disabled = false;
+      const e = state.log[idx];
+      hint.style.display = "block";
+      hint.textContent = "Will restore: " + (e.type === "skip"
+        ? (colName(e.player) + "'s skipped turn")
+        : (colName(e.suggester) + "'s suggestion of " + e.suspect + " / " + e.weapon + " / " + e.room));
+    }
+  }
+
+  document.getElementById("redoLogBtn").addEventListener("click", () => {
+    const idx = findMostRecentlyRemovedIndex();
+    if(idx === -1) return;
+    state.log[idx].deleted = false;
+    afterLogEdit();
+  });
+
+  document.getElementById("undoLogBtn").addEventListener("click", () => {
+    const idx = findLastActiveIndex();
+    if(idx === -1) return;
+    state.log[idx].deleted = true;
+    afterLogEdit();
+  });
+
+  function renderSuggesterAndRoster(){
+    sgSuggesterSel.innerHTML = "";
+    state.players.forEach((p, idx) => {
+      const o = document.createElement("option");
+      o.value = idx; o.textContent = p.name + (idx===state.me ? " (me)" : "");
+      sgSuggesterSel.appendChild(o);
+    });
+    sgSuggesterSel.value = String(state.currentTurn);
+  }
+
+  function relabelSuggesterOptions(){
+    Array.from(sgSuggesterSel.options).forEach(o => {
+      const idx = parseInt(o.value, 10);
+      if(state.players[idx]) o.textContent = state.players[idx].name + (idx===state.me ? " (me)" : "");
+    });
+  }
+
+  // ---------- Sequence (asking around the table) ----------
+  function resetSequence(){
+    const suggester = parseInt(sgSuggesterSel.value, 10) || 0;
+    seq = { suggester: suggester, order: askOrder(suggester), statusList: [], shower: null, knownCard: null, history: [] };
+    seq.statusList = seq.order.map(()=>"pending");
+    clearWarning();
+    undoResponseBtn.disabled = true;
+  }
+
+  function snapshotSeq(){
+    return JSON.stringify({ statusList: seq.statusList, shower: seq.shower, knownCard: seq.knownCard });
+  }
+
+  function currentPointer(){
+    if(!seq) return -1;
+    if(seq.shower !== null) return -1;
+    return seq.statusList.findIndex(s => s === "pending");
+  }
+
+  function pushHistory(){ seq.history.push(snapshotSeq()); undoResponseBtn.disabled = false; }
+
+  document.getElementById("undoResponseBtn").addEventListener("click", () => {
+    if(!seq || !seq.history.length) return;
+    const snap = JSON.parse(seq.history.pop());
+    seq.statusList = snap.statusList; seq.shower = snap.shower; seq.knownCard = snap.knownCard;
+    undoResponseBtn.disabled = seq.history.length === 0;
+    clearWarning();
+    renderSequence();
+  });
+
+  function recordPassed(i){
+    if(!seq || seq.shower !== null || i !== currentPointer()) return;
+    pushHistory();
+    seq.statusList[i] = "passed";
+    afterAction();
+  }
+
+  function recordShown(i, knownCard){
+    if(!seq || seq.shower !== null || i !== currentPointer()) return;
+    pushHistory();
+    seq.statusList[i] = "shown";
+    seq.shower = seq.order[i];
+    seq.knownCard = knownCard || null;
+    for(let j=i+1;j<seq.order.length;j++) seq.statusList[j] = "skipped";
+    afterAction();
+  }
+
+  function isSequenceComplete(){
+    if(!seq) return false;
+    if(seq.order.length === 0) return true;
+    if(seq.shower !== null) return true;
+    return seq.statusList.every(s => s === "passed");
+  }
+
+  function afterAction(){
+    closeModal();
+    renderSequence();
+    if(isSequenceComplete()) trySubmit();
+  }
+
+  function renderSequence(){
+    sequenceWrap.innerHTML = "";
+    if(!seq) return;
+
+    if(seq.order.length === 0){
+      sequenceWrap.innerHTML = '<div class="empty-note">No other players to ask.</div>';
+      return;
+    }
+
+    const pointer = currentPointer();
+    seq.order.forEach((pIdx, i) => {
+      const row = document.createElement("div");
+      const status = seq.statusList[i];
+      let rowClass = "seq-row";
+      if(seq.shower === null && i === pointer) rowClass += " active";
+      else if(status === "pending") rowClass += " pending";
+      row.className = rowClass;
+
+      const nameSpan = document.createElement("div");
+      nameSpan.className = "seq-name";
+      nameSpan.textContent = (i+1) + ". " + colName(pIdx) + (pIdx===state.me ? " (me)" : "");
+      row.appendChild(nameSpan);
+
+      if(seq.shower === null && i === pointer){
+        const respBtn = document.createElement("button");
+        respBtn.className = "small";
+        respBtn.textContent = "Response";
+        respBtn.addEventListener("click", () => openResponseModal(i, pIdx));
+        row.appendChild(respBtn);
+      } else {
+        const badge = document.createElement("span");
+        if(status === "passed"){ badge.className="seq-badge passed"; badge.textContent="Passed"; }
+        else if(status === "shown"){ badge.className="seq-badge shown"; badge.textContent = seq.knownCard ? ("Showed " + seq.knownCard) : "Showed a card"; }
+        else { badge.className="seq-badge pending-badge"; badge.textContent = (seq.shower!==null) ? "Not asked" : "Waiting…"; }
+        row.appendChild(badge);
+      }
+      sequenceWrap.appendChild(row);
+    });
+
+    if(seq.order.length > 0 && seq.shower === null && pointer === -1){
+      const doneNote = document.createElement("div");
+      doneNote.className = "empty-note";
+      doneNote.textContent = "Everyone passed — no one showed a card.";
+      sequenceWrap.appendChild(doneNote);
+    }
+  }
+
+  // ---------- Response modal ----------
+  function openResponseModal(rowIndex, respIdx){
+    const suspect = sgSuspectSel.value, weapon = sgWeaponSel.value, room = sgRoomSel.value;
+    const trio = [suspect, weapon, room];
+    const suggester = seq.suggester;
+
+    let html = '<h3>' + colName(respIdx) + (respIdx===state.me?" (me)":"") + ' responding to ' + colName(suggester) + (suggester===state.me?" (me)":"") + '\'s suggestion</h3>';
+
+    if(respIdx === state.me){
+      // Point 3: I'm showing. Only cards I actually hold from the trio.
+      const mine = trio.filter(c => state.myCards.includes(c));
+      const anyGreen = mine.some(c => !hasIShownCardToPlayer(c, suggester));
+      if(!mine.length){
+        html += '<div class="modal-empty">You don\'t hold any of these three cards.</div>';
+      } else {
+        mine.forEach(c => {
+          const alreadyShown = hasIShownCardToPlayer(c, suggester);
+          const disable = alreadyShown && anyGreen;
+          html += '<button class="card-option ' + (alreadyShown ? "opt-red" : "opt-green") + '" ' +
+            (disable ? "disabled" : "") + ' data-card="' + c + '">' + c + (alreadyShown ? (disable ? " — locked, already shown to them, pick another" : " — already shown, but it's your only option") : "") + '</button>';
+        });
+      }
+    } else if(suggester === state.me){
+      // Point 4: someone showing to me. Only the trio cards not already ruled out for them
+      // (excludes cards I hold myself, cards already proven held by someone else, or already solved to the case file).
+      const { facts } = computeFacts();
+      const possible = trio.filter(c => facts[c] && facts[c][respIdx] !== "no");
+      if(!possible.length){
+        html += '<div class="modal-empty">None of these three are logically possible for ' + colName(respIdx) + ' — this shouldn\'t happen unless something else needs fixing.</div>';
+      } else {
+        html += '<div class="modal-empty" style="margin-bottom:10px;">Pick exactly the card ' + colName(respIdx) + ' showed you this time — even a red one, if they showed the same card again.</div>';
+        possible.forEach(c => {
+          const alreadyShown = hasPlayerShownCardToMe(c, respIdx);
+          html += '<button class="card-option ' + (alreadyShown ? "opt-red" : "opt-green") + '" data-card="' + c + '">' + c + (alreadyShown ? " — seen before, click if shown again" : "") + '</button>';
+        });
+      }
+    } else {
+      html += '<div class="modal-empty">You won\'t see which specific card is shown here.</div>';
+      html += '<button class="card-option opt-green" data-card="__unknown__">Showed a card (unknown which)</button>';
+    }
+
+    html += '<button class="secondary block modal-pass-btn" id="modalPassBtn">Pass</button>';
+    openModal(html);
+
+    modalBox.querySelectorAll(".card-option").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const card = btn.dataset.card;
+        recordShown(rowIndex, card === "__unknown__" ? null : card);
+      });
+    });
+    document.getElementById("modalPassBtn").addEventListener("click", () => recordPassed(rowIndex));
+  }
+
+  // ---------- Validation ----------
+  function showWarning(msg){
+    showWarningWithFix(msg, -1);
+  }
+  function showWarningWithFix(msg, rowIndex){
+    sgWarningBox.innerHTML = msg + (rowIndex >= 0 ? ' <button class="secondary small" id="fixResponseBtn" style="margin-left:6px;">Fix this response</button>' : "");
+    sgWarningBox.className = "warning-box show";
+    sgWarningBox.classList.remove("flash-warn");
+    void sgWarningBox.offsetWidth;
+    sgWarningBox.classList.add("flash-warn");
+    if(rowIndex >= 0){
+      const btn = document.getElementById("fixResponseBtn");
+      if(btn) btn.addEventListener("click", () => rewindSeqTo(rowIndex));
+    }
+  }
+  function clearWarning(){ sgWarningBox.className = "warning-box"; sgWarningBox.innerHTML = ""; }
+
+  // Jumps the in-progress round back to a specific responder's row, undoing
+  // that response and everything after it in one step (rather than repeated
+  // "Undo last response" clicks working backward one action at a time).
+  function rewindSeqTo(rowIndex){
+    if(!seq) return;
+    for(let j = rowIndex; j < seq.order.length; j++) seq.statusList[j] = "pending";
+    seq.shower = null;
+    seq.knownCard = null;
+    seq.history = [];
+    undoResponseBtn.disabled = true;
+    clearWarning();
+    renderSequence();
+  }
+
+  function trySubmit(){
+    if(!seq || !isSequenceComplete()) return;
+    const suggester = seq.suggester;
+    const suspect = sgSuspectSel.value, weapon = sgWeaponSel.value, room = sgRoomSel.value;
+    const passed = seq.order.filter((p,i)=>seq.statusList[i]==="passed");
+    const shower = seq.shower;
+    const knownCard = seq.knownCard;
+
+    const { facts } = computeFacts();
+    const trio = [suspect, weapon, room];
+    const repeatPassers = [];
+    for(const p of passed){
+      const yesCards = trio.filter(c => facts[c] && facts[c][p] === "yes");
+      if(!yesCards.length) continue; // ordinary pass, no conflict
+      const hasUnknown = trio.some(c => facts[c] && facts[c][p] === undefined);
+      if(state.ruleMode === "family" && !hasUnknown){
+        // Family Rules: they already hold something from this trio, but every card in
+        // it is already fully known for them (nothing left that could be new info) —
+        // a legitimate pass under the house rule, not a contradiction.
+        repeatPassers.push(p);
+      } else {
+        const rowIdx = seq.order.indexOf(p);
+        const why = hasUnknown
+          ? ' — and they still have an undetermined card in this trio, so Family Rules can\'t apply here either.'
+          : '.';
+        showWarningWithFix("⚠ Conflict: " + colName(p) + ' is already known to hold "' + yesCards[0] + '" — they can\'t have passed on this suggestion' + why, rowIdx);
+        return;
+      }
+    }
+    if(shower !== null && knownCard){
+      const currentForShower = facts[knownCard] ? facts[knownCard][shower] : undefined;
+      const showerRowIdx = seq.order.indexOf(shower);
+      if(currentForShower === "no"){
+        showWarningWithFix("⚠ Conflict: " + colName(shower) + ' was already established to NOT have "' + knownCard + '".', showerRowIdx);
+        return;
+      }
+      const allCols = state.players.map((_,i)=>i).concat([CASE]);
+      const holder = allCols.find(c => c !== shower && facts[knownCard] && facts[knownCard][c] === "yes");
+      if(holder !== undefined){
+        showWarningWithFix('⚠ Conflict: "' + knownCard + '" is already known to be held by ' + colName(holder) + ".", showerRowIdx);
+        return;
+      }
+    }
+
+    state.log.push({ type:"suggestion", suggester, suspect, weapon, room, passed, repeatPassers, shower, knownCard });
+    state.currentTurn = nextIdx(suggester);
+    saveState();
+    seq = null;
+    turnChoiceRow.style.display = "flex";
+    suggestBody.style.display = "none";
+    renderAll({ rebuildRoster:true, forceResetSequence:false });
+  }
+
+  // ---------- Log rendering ----------
+  function narrateEntry(e){
+    if(e.type === "skip"){
+      return colName(e.player) + (e.player===state.me?" (me)":"") + " had no suggestion this turn.";
+    }
+    let txt = "<b>" + colName(e.suggester) + "</b> suggested <b>" + e.suspect + "</b> / <b>" + e.weapon + "</b> / <b>" + e.room + "</b>. ";
+    const repeatPassers = e.repeatPassers || [];
+    const ordinaryPassed = e.passed.filter(p => !repeatPassers.includes(p));
+    if(ordinaryPassed.length) txt += ordinaryPassed.map(colName).join(", ") + ' <span class="tag pass">passed</span> ';
+    if(repeatPassers.length) txt += repeatPassers.map(colName).join(", ") + ' <span class="tag pass">passed (already shown before — Family Rules)</span> ';
+    if(e.shower!==null){
+      txt += colName(e.shower) + ' <span class="tag shown">showed a card</span>';
+      txt += e.knownCard ? (" (" + e.knownCard + ")") : " (unknown which)";
+    } else if(!e.passed.length){
+      txt += '<span class="tag skip">no one else at the table</span>';
+    } else {
+      txt += '<span class="tag skip">no card shown</span>';
+    }
+    return txt;
+  }
+
+  let showRemoved = false;
+
+  function renderLog(){
+    const wrap = document.getElementById("logList");
+    wrap.innerHTML = "";
+
+    const toggleRow = document.createElement("div");
+    toggleRow.style.marginBottom = "10px";
+    const toggleBtn = document.createElement("button");
+    toggleBtn.className = "secondary small";
+    toggleBtn.textContent = showRemoved ? "Hide removed entries" : "Show removed entries";
+    toggleBtn.addEventListener("click", () => { showRemoved = !showRemoved; renderLog(); });
+    toggleRow.appendChild(toggleBtn);
+    wrap.appendChild(toggleRow);
+
+    const visibleCount = state.log.filter(e => showRemoved || !e.deleted).length;
+    if(!visibleCount){ wrap.appendChild(Object.assign(document.createElement("div"), { className:"empty-note", textContent:"No suggestions logged yet." })); return; }
+
+    for(let idx = state.log.length-1; idx>=0; idx--){
+      const e = state.log[idx];
+      if(e.deleted && !showRemoved) continue;
+
+      const row = document.createElement("div"); row.className = "log-entry";
+      const txt = document.createElement("div"); txt.className = "txt";
+      const numTag = "<span style='color:var(--parchment-dim); font-family:\"Courier New\",monospace; font-size:11px;'>#" + (idx+1) + "</span> ";
+      if(e.deleted){
+        txt.innerHTML = numTag + '<span style="text-decoration:line-through; opacity:.6;">' + narrateEntry(e) + '</span> <span class="tag skip">REMOVED</span>';
+      } else {
+        txt.innerHTML = numTag + narrateEntry(e);
+      }
+
+      const btn = document.createElement("button");
+      btn.className = "secondary"; btn.style.padding = "5px 9px";
+
+      if(e.deleted){
+        btn.textContent = "Restore";
+        btn.addEventListener("click", () => {
+          e.deleted = false;
+          afterLogEdit();
+        });
+      } else {
+        btn.textContent = "Remove";
+        btn.addEventListener("click", () => {
+          e.deleted = true;
+          afterLogEdit();
+        });
+      }
+      row.appendChild(txt); row.appendChild(btn);
+      wrap.appendChild(row);
+    }
+  }
+
+  // ---------- Deduction engine ----------
+  let lastFacts = null;
+  function computeFacts(){
+    const facts = {};
+    const conflicts = [];
+    ALL_CARDS.forEach(card => facts[card] = {});
+    const columns = state.players.map((_,i)=>i).concat([CASE]);
+
+    function setFact(card, col, val){
+      const cur = facts[card][col];
+      if(cur && cur !== val){
+        conflicts.push('Contradiction on "' + card + '" / ' + colName(col) + ": already " + cur + ", now trying to set " + val + ".");
+        return;
+      }
+      facts[card][col] = val;
+    }
+
+    Object.keys(state.manual).forEach(k => {
+      const idxSep = k.lastIndexOf("|");
+      const card = k.substring(0, idxSep);
+      const colRaw = k.substring(idxSep+1);
+      const col = colRaw === CASE ? CASE : parseInt(colRaw,10);
+      if(ALL_CARDS.includes(card) && columns.includes(col)) facts[card][col] = state.manual[k];
+    });
+
+    state.myCards.forEach(card => setFact(card, state.me, "yes"));
+
+    const suggestions = state.log.filter(e => e.type === "suggestion" && !e.deleted);
+    suggestions.forEach(e => {
+      const trio = [e.suspect, e.weapon, e.room];
+      e.passed.forEach(p => {
+        if((e.repeatPassers||[]).includes(p)) return; // family-mode repeat pass: no new info to record
+        trio.forEach(card => setFact(card, p, "no"));
+      });
+      if(e.shower !== null && e.knownCard) setFact(e.knownCard, e.shower, "yes");
+    });
+
+    let orConstraints = suggestions
+      .filter(e => e.shower !== null && !e.knownCard)
+      .map(e => ({ player: e.shower, options: [e.suspect, e.weapon, e.room] }));
+
+    let changed = true, iterations = 0;
+    while(changed && iterations < 100){
+      changed = false; iterations++;
+
+      ALL_CARDS.forEach(card => {
+        const yesCols = columns.filter(c => facts[card][c] === "yes");
+        if(yesCols.length >= 1){
+          columns.forEach(c => { if(!yesCols.includes(c) && facts[card][c] !== "no"){ facts[card][c] = "no"; changed = true; } });
+        } else {
+          const noCols = columns.filter(c => facts[card][c] === "no");
+          const unknownCols = columns.filter(c => facts[card][c] === undefined);
+          if(noCols.length === columns.length - 1 && unknownCols.length === 1){ facts[card][unknownCols[0]] = "yes"; changed = true; }
+        }
+      });
+
+      CATEGORIES.forEach(cat => {
+        const yesCards = cat.cards.filter(c => facts[c][CASE] === "yes");
+        if(yesCards.length >= 1){
+          cat.cards.forEach(c => { if(!yesCards.includes(c) && facts[c][CASE] !== "no"){ facts[c][CASE] = "no"; changed = true; } });
+        } else {
+          const noCards = cat.cards.filter(c => facts[c][CASE] === "no");
+          const unknownCards = cat.cards.filter(c => facts[c][CASE] === undefined);
+          if(noCards.length === cat.cards.length - 1 && unknownCards.length === 1){ facts[unknownCards[0]][CASE] = "yes"; changed = true; }
+        }
+      });
+
+      state.players.forEach((p, idx) => {
+        const yesCount = ALL_CARDS.filter(c => facts[c][idx] === "yes").length;
+        const unknownCards = ALL_CARDS.filter(c => facts[c][idx] === undefined);
+        if(yesCount >= p.handSize && unknownCards.length){
+          unknownCards.forEach(c => { facts[c][idx] = "no"; changed = true; });
+        } else if(unknownCards.length && (p.handSize - yesCount) === unknownCards.length){
+          unknownCards.forEach(c => { facts[c][idx] = "yes"; changed = true; });
+        }
+      });
+
+      const stillActive = [];
+      orConstraints.forEach(con => {
+        const remaining = con.options.filter(c => facts[c][con.player] !== "no");
+        const alreadyYes = con.options.some(c => facts[c][con.player] === "yes");
+        if(alreadyYes){ changed = true; return; }
+        if(remaining.length === 1){ facts[remaining[0]][con.player] = "yes"; changed = true; return; }
+        if(remaining.length === 0){
+          conflicts.push("Unresolvable: " + colName(con.player) + " was shown one of " + con.options.join(", ") + " but all are ruled out for them.");
+          return;
+        }
+        stillActive.push(con);
+      });
+      orConstraints = stillActive;
+    }
+
+    const result = { facts, conflicts, columns };
+    lastFacts = result;
+    return result;
+  }
+
+  // ---------- Grid rendering (Grid tab) ----------
+  function renderGrids(result){
+    const wrap = document.getElementById("gridsWrap");
+    wrap.innerHTML = "";
+    const facts = result.facts;
+    CATEGORIES.forEach(cat => {
+      const h = document.createElement("h3"); h.style.marginTop = "18px"; h.style.color = "var(--brass-bright)"; h.style.fontSize="14px";
+      h.textContent = cat.label;
+      wrap.appendChild(h);
+      const scroller = document.createElement("div"); scroller.className = "table-scroll";
+      const table = document.createElement("table"); table.className = "grid";
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      const th0 = document.createElement("th"); th0.textContent = cat.label.slice(0,-1); th0.style.textAlign="left";
+      headRow.appendChild(th0);
+      state.players.forEach((p,i) => { const th = document.createElement("th"); th.textContent = p.name + (i===state.me?" (me)":""); headRow.appendChild(th); });
+      const thCase = document.createElement("th"); thCase.textContent = "Case File"; headRow.appendChild(thCase);
+      thead.appendChild(headRow); table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      cat.cards.forEach(card => {
+        const tr = document.createElement("tr");
+        const nameTd = document.createElement("td"); nameTd.className = "card-name"; nameTd.textContent = card;
+        tr.appendChild(nameTd);
+        state.players.forEach((p,i) => {
+          const td = document.createElement("td");
+          const val = facts[card][i];
+          const manualTag = (state.manual[card+"|"+i] !== undefined) ? '<span class="tag-manual">(manual)</span>' : "";
+          if(val === "yes") td.innerHTML = '<span class="holds">Holds</span>' + manualTag;
+          else if(val === "no") td.innerHTML = '<span class="nope">—</span>';
+          else td.innerHTML = '<span class="unk">?</span>';
+          tr.appendChild(td);
+        });
+        const tdCase = document.createElement("td");
+        const caseVal = facts[card][CASE];
+        if(caseVal === "yes") tdCase.innerHTML = '<span class="solution">SOLUTION</span>';
+        else if(caseVal === "no") tdCase.innerHTML = '<span class="nope">—</span>';
+        else tdCase.innerHTML = '<span class="unk">?</span>';
+        tr.appendChild(tdCase);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      scroller.appendChild(table);
+      wrap.appendChild(scroller);
+    });
+  }
+
+  function renderSolution(result){
+    const facts = result.facts;
+    const wrap = document.getElementById("solutionGrid");
+    wrap.innerHTML = "";
+    CATEGORIES.forEach(cat => {
+      const box = document.createElement("div"); box.className = "sol-card";
+      const h = document.createElement("h4"); h.textContent = cat.label; box.appendChild(h);
+      const solved = cat.cards.find(c => facts[c][CASE] === "yes");
+      const possible = cat.cards.filter(c => facts[c][CASE] !== "no");
+      const answer = document.createElement("div");
+      if(solved){ answer.className = "answer"; answer.textContent = solved; }
+      else { answer.className = "answer unsolved"; answer.textContent = possible.length + " possibilit" + (possible.length===1?"y":"ies") + " remain"; }
+      box.appendChild(answer);
+      wrap.appendChild(box);
+    });
+  }
+
+  // ---------- Pending tab & header counts ----------
+  function renderHeaderCounts(result){
+    const facts = result.facts;
+    const el = document.getElementById("pendingCounts");
+    el.innerHTML = CATEGORIES.map(cat => {
+      const solved = cat.cards.find(c => facts[c][CASE] === "yes");
+      if(solved){
+        return '<span>' + cat.label + ': <b class="solved">' + solved + '</b></span>';
+      }
+      const possible = cat.cards.filter(c => facts[c][CASE] !== "no").length;
+      return '<span>' + cat.label + ': <b>' + possible + ' possible</b></span>';
+    }).join("");
+  }
+
+  function renderPendingDetail(result){
+    const facts = result.facts;
+    const wrap = document.getElementById("pendingDetail");
+    wrap.innerHTML = "";
+    CATEGORIES.forEach(cat => {
+      const allCols = state.players.map((_,i)=>i).concat([CASE]);
+      const undetermined = cat.cards.filter(c => !allCols.some(col => facts[c][col]==="yes"));
+      const h = document.createElement("h3"); h.style.color="var(--brass-bright)"; h.style.fontSize="13px"; h.textContent = cat.label;
+      wrap.appendChild(h);
+      const p = document.createElement("div"); p.className = "empty-note";
+      p.textContent = undetermined.length ? undetermined.join(", ") : "Fully solved.";
+      wrap.appendChild(p);
+    });
+    const h2 = document.createElement("h3"); h2.style.color="var(--brass-bright)"; h2.style.fontSize="13px"; h2.style.marginTop="16px"; h2.textContent = "Cards left to place, per player";
+    wrap.appendChild(h2);
+    const fillNote = state.players.map((p,i) => {
+      const yesCount = ALL_CARDS.filter(c => facts[c][i] === "yes").length;
+      const need = (p.handSize||0) - yesCount;
+      return p.name + (i===state.me?" (me)":"") + ": " + (need>0 ? (need + " more needed") : "complete");
+    });
+    const p2 = document.createElement("div"); p2.className = "empty-note"; p2.textContent = fillNote.join(" • ");
+    wrap.appendChild(p2);
+  }
+
+  function renderConflicts(conflicts){
+    const el = document.getElementById("conflictBanner");
+    el.innerHTML = conflicts.length
+      ? '<div class="conflict-banner">⚠ Logic conflict detected — double check manual entries and the suggestion log:<br>' + conflicts.slice(0,5).map(c=>"• "+c).join("<br>") + '</div>'
+      : "";
+  }
+
+  function renderTurnBanner(){
+    const p = state.players[state.currentTurn];
+    turnWhoEl.textContent = p ? (p.name + (state.currentTurn===state.me ? " (me)" : "")) + " to suggest" : "—";
+    turnDirEl.textContent = state.direction === "cw" ? "↻ Clockwise" : "↺ Anti-clockwise";
+  }
+
+  // ---------- Export / Import ----------
+  function buildExportPayload(){
+    const result = computeFacts();
+    const facts = result.facts;
+    const solution = {};
+    CATEGORIES.forEach(cat => {
+      const solved = cat.cards.find(c => facts[c][CASE] === "yes");
+      solution[cat.label] = solved || cat.cards.filter(c => facts[c][CASE] !== "no");
+    });
+    const readableLog = state.log.map((e, i) => {
+      if(e.type === "skip") return { turn: i+1, type:"skip", player: colName(e.player), removed: !!e.deleted };
+      return {
+        turn: i+1, type:"suggestion", suggester: colName(e.suggester), suspect: e.suspect, weapon: e.weapon, room: e.room,
+        passed: e.passed.map(colName), repeatPassers: (e.repeatPassers||[]).map(colName),
+        shower: e.shower !== null ? colName(e.shower) : null, knownCard: e.knownCard,
+        removed: !!e.deleted
+      };
+    });
+    return {
+      exportedAt: new Date().toISOString(),
+      ruleMode: state.ruleMode,
+      players: state.players.map((p,i)=>({ name:p.name, handSize:p.handSize, isMe: i===state.me })),
+      direction: state.direction,
+      myCards: state.myCards,
+      manualOverrides: state.manual,
+      suggestionLog: readableLog,
+      currentSolutionGuess: solution,
+      rawState: state
+    };
+  }
+
+  function exportJSONString(){ return JSON.stringify(buildExportPayload(), null, 2); }
+
+  document.getElementById("exportBtn").addEventListener("click", () => {
+    const json = exportJSONString();
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "cluedo-case-" + new Date().toISOString().slice(0,10) + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    document.getElementById("exportBox").value = json;
+  });
+
+  document.getElementById("copyBtn").addEventListener("click", () => {
+    const json = exportJSONString();
+    const box = document.getElementById("exportBox");
+    box.value = json; box.focus(); box.select();
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(json).then(() => alert("Case data copied to clipboard. Paste it into the chat.")).catch(() => {});
+    }
+  });
+
+  document.getElementById("importFile").addEventListener("change", (evt) => {
+    const file = evt.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const parsed = JSON.parse(reader.result);
+        const incoming = parsed.rawState || parsed;
+        if(!incoming || !incoming.players || !incoming.players.length) throw new Error("File doesn't look like case data.");
+        if(!confirm("Import this case data? It will replace everything currently in the app.")) return;
+        state = incoming;
+        if(state.direction === undefined) state.direction = "cw";
+        if(state.currentTurn === undefined) state.currentTurn = 0;
+        if(state.activeTab === undefined) state.activeTab = "suggest";
+        if(state.gameStarted === undefined) state.gameStarted = true;
+        if(state.ruleMode === undefined || state.ruleMode === null) state.ruleMode = "normal";
+        (state.log||[]).forEach(e=>{ if(!e.type) e.type = "suggestion"; if(e.deleted===undefined) e.deleted = false; if(!e.repeatPassers) e.repeatPassers = []; });
+        numPlayersSel.value = state.players.length;
+        directionSel.value = state.direction;
+        ruleModeSel.value = state.ruleMode;
+        saveState();
+        closeDrawer();
+        turnChoiceRow.style.display = "flex";
+        suggestBody.style.display = "none";
+        renderAll({ forceResetSequence:true });
+      }catch(err){ alert("Couldn't import that file: " + err.message); }
+      evt.target.value = "";
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById("resetAll").addEventListener("click", () => {
+    if(confirm("This will erase all players, cards, and the suggestion log. Continue?")){
+      state = freshState(4);
+      numPlayersSel.value = 4;
+      directionSel.value = state.direction;
+      ruleModeSel.value = "normal";
+      saveState();
+      closeDrawer();
+      turnChoiceRow.style.display = "flex";
+      suggestBody.style.display = "none";
+      renderAll({ forceResetSequence:true });
+      versionOverlay.classList.add("open");
+    }
+  });
+
+  // ---------- Master render ----------
+  // Annotates each dropdown option with what's already known about that card,
+  // so it's obvious at a glance which suggestions would actually produce new information.
+  function annotatedLabel(card, facts){
+    const allCols = state.players.map((_,i)=>i).concat([CASE]);
+    const holder = allCols.find(c => facts[card][c] === "yes");
+    if(holder === undefined) return card;
+    if(holder === CASE) return card + " — SOLVED (case file)";
+    return card + " — known (" + colName(holder) + (holder===state.me ? ", me" : "") + ")";
+  }
+  function refreshCategoryLabels(facts){
+    const pairs = [[sgSuspectSel, CATEGORIES[0]], [sgWeaponSel, CATEGORIES[1]], [sgRoomSel, CATEGORIES[2]]];
+    pairs.forEach(([sel, cat]) => {
+      Array.from(sel.options).forEach(o => { o.textContent = annotatedLabel(o.value, facts); });
+      const solved = cat.cards.some(c => facts[c][CASE] === "yes");
+      sel.classList.toggle("solved-select", solved);
+    });
+  }
+
+  function renderAll(opts){
+    opts = opts || {};
+    const rebuildRoster = opts.rebuildRoster !== false;
+    const skipPlayersList = !!opts.skipPlayersList;
+
+    if(rebuildRoster) renderSuggesterAndRoster();
+    else relabelSuggesterOptions();
+
+    if(!skipPlayersList) renderPlayersList();
+    renderMyCards();
+    renderTurnBanner();
+
+    if(opts.forceResetSequence || !seq){
+      resetSequence();
+    }
+    renderSequence();
+
+    const result = computeFacts();
+    renderConflicts(result.conflicts);
+    renderHeaderCounts(result);
+    refreshCategoryLabels(result.facts);
+    renderRedoButton();
+
+    if(state.activeTab === "log") renderLog();
+    if(state.activeTab === "grid"){ renderSolution(result); renderGrids(result); }
+    if(state.activeTab === "pending") renderPendingDetail(result);
+
+    renderSetupGate();
+  }
+
+  // ---------- Version picker (Normal vs Family Rules) ----------
+  const versionOverlay = document.getElementById("versionOverlay");
+  function chooseRuleMode(mode){
+    state.ruleMode = mode;
+    saveState();
+    ruleModeSel.value = mode;
+    versionOverlay.classList.remove("open");
+  }
+  document.getElementById("pickNormal").addEventListener("click", () => chooseRuleMode("normal"));
+  document.getElementById("pickFamily").addEventListener("click", () => chooseRuleMode("family"));
+  if(state.ruleMode !== "normal" && state.ruleMode !== "family"){
+    versionOverlay.classList.add("open");
+  }
+
+  // init tab UI
+  setTab(state.activeTab || "suggest");
+  turnChoiceRow.style.display = "flex";
+  suggestBody.style.display = "none";
+  renderAll({ forceResetSequence:true });
+
+  if("serviceWorker" in navigator && location.protocol !== "file:"){
+    window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+  }
+})();
+</script>
+</body>
+</html>
