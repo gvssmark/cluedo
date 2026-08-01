@@ -324,9 +324,7 @@
     <div class="panel">
       <div class="row">
         <button class="secondary" id="undoLogBtn">Undo last log entry</button>
-        <button class="secondary" id="redoLogBtn">Redo (restore last removed)</button>
       </div>
-      <div class="empty-note" id="redoHint" style="margin-top:8px; display:none;"></div>
     </div>
   </section>
 
@@ -820,59 +818,18 @@
     return -1;
   }
 
-  // Recomputes whose turn it is from whatever the current last active log entry is.
-  // Safe to call after ANY delete/restore, anywhere in the log — if the edited entry
-  // wasn't the most recent active one, this just leaves currentTurn where it already was.
-  function syncCurrentTurnToLog(){
+  document.getElementById("undoLogBtn").addEventListener("click", () => {
     const idx = findLastActiveIndex();
-    if(idx === -1) return; // no active history left; leave currentTurn as-is
+    if(idx === -1) return;
     const last = state.log[idx];
-    state.currentTurn = nextIdx(last.type === "skip" ? last.player : last.suggester);
-  }
-
-  function afterLogEdit(){
-    syncCurrentTurnToLog();
+    last.deleted = true;
+    if(last.type === "skip") state.currentTurn = last.player;
+    else state.currentTurn = last.suggester;
     saveState();
     turnChoiceRow.style.display = "flex";
     suggestBody.style.display = "none";
     seq = null;
     renderAll({ rebuildRoster:true, forceResetSequence:true });
-  }
-
-  function findMostRecentlyRemovedIndex(){
-    for(let i=state.log.length-1;i>=0;i--){ if(state.log[i].deleted) return i; }
-    return -1;
-  }
-
-  function renderRedoButton(){
-    const idx = findMostRecentlyRemovedIndex();
-    const btn = document.getElementById("redoLogBtn");
-    const hint = document.getElementById("redoHint");
-    if(idx === -1){
-      btn.disabled = true;
-      hint.style.display = "none";
-    } else {
-      btn.disabled = false;
-      const e = state.log[idx];
-      hint.style.display = "block";
-      hint.textContent = "Will restore: " + (e.type === "skip"
-        ? (colName(e.player) + "'s skipped turn")
-        : (colName(e.suggester) + "'s suggestion of " + e.suspect + " / " + e.weapon + " / " + e.room));
-    }
-  }
-
-  document.getElementById("redoLogBtn").addEventListener("click", () => {
-    const idx = findMostRecentlyRemovedIndex();
-    if(idx === -1) return;
-    state.log[idx].deleted = false;
-    afterLogEdit();
-  });
-
-  document.getElementById("undoLogBtn").addEventListener("click", () => {
-    const idx = findLastActiveIndex();
-    if(idx === -1) return;
-    state.log[idx].deleted = true;
-    afterLogEdit();
   });
 
   function renderSuggesterAndRoster(){
@@ -1195,13 +1152,28 @@
         btn.textContent = "Restore";
         btn.addEventListener("click", () => {
           e.deleted = false;
-          afterLogEdit();
+          saveState();
+          renderAll({ rebuildRoster:false });
         });
       } else {
         btn.textContent = "Remove";
         btn.addEventListener("click", () => {
+          const isLastActive = (idx === findLastActiveIndex());
           e.deleted = true;
-          afterLogEdit();
+          if(isLastActive){
+            // Removing the most recent active entry must also rewind whose turn it is,
+            // otherwise the next player's turn gets silently skipped.
+            if(e.type === "skip") state.currentTurn = e.player;
+            else state.currentTurn = e.suggester;
+            turnChoiceRow.style.display = "flex";
+            suggestBody.style.display = "none";
+            seq = null;
+            saveState();
+            renderAll({ rebuildRoster:true, forceResetSequence:true });
+          } else {
+            saveState();
+            renderAll({ rebuildRoster:false });
+          }
         });
       }
       row.appendChild(txt); row.appendChild(btn);
@@ -1560,7 +1532,6 @@
     renderConflicts(result.conflicts);
     renderHeaderCounts(result);
     refreshCategoryLabels(result.facts);
-    renderRedoButton();
 
     if(state.activeTab === "log") renderLog();
     if(state.activeTab === "grid"){ renderSolution(result); renderGrids(result); }
