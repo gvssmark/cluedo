@@ -823,15 +823,20 @@
   // Recomputes whose turn it is from whatever the current last active log entry is.
   // Safe to call after ANY delete/restore, anywhere in the log — if the edited entry
   // wasn't the most recent active one, this just leaves currentTurn where it already was.
-  function syncCurrentTurnToLog(){
+  // fallbackTurn is used only when the log has no active entries left at all (e.g.
+  // undoing the very first entry) — without it, currentTurn would just get stuck.
+  function syncCurrentTurnToLog(fallbackTurn){
     const idx = findLastActiveIndex();
-    if(idx === -1) return; // no active history left; leave currentTurn as-is
+    if(idx === -1){
+      if(fallbackTurn !== undefined && fallbackTurn !== null) state.currentTurn = fallbackTurn;
+      return;
+    }
     const last = state.log[idx];
     state.currentTurn = nextIdx(last.type === "skip" ? last.player : last.suggester);
   }
 
-  function afterLogEdit(){
-    syncCurrentTurnToLog();
+  function afterLogEdit(fallbackTurn){
+    syncCurrentTurnToLog(fallbackTurn);
     saveState();
     turnChoiceRow.style.display = "flex";
     suggestBody.style.display = "none";
@@ -871,8 +876,9 @@
   document.getElementById("undoLogBtn").addEventListener("click", () => {
     const idx = findLastActiveIndex();
     if(idx === -1) return;
-    state.log[idx].deleted = true;
-    afterLogEdit();
+    const removed = state.log[idx];
+    removed.deleted = true;
+    afterLogEdit(removed.type === "skip" ? removed.player : removed.suggester);
   });
 
   function renderSuggesterAndRoster(){
@@ -1036,8 +1042,14 @@
         });
       }
     } else {
-      html += '<div class="modal-empty">You won\'t see which specific card is shown here.</div>';
-      html += '<button class="card-option opt-green" data-card="__unknown__">Showed a card (unknown which)</button>';
+      const { facts: obsFacts } = computeFacts();
+      const stillPossible = trio.some(c => obsFacts[c] && obsFacts[c][respIdx] !== "no");
+      if(!stillPossible){
+        html += '<div class="modal-empty">None of these three cards can logically belong to ' + colName(respIdx) + ' — all three are already known to be held elsewhere. This should be a Pass.</div>';
+      } else {
+        html += '<div class="modal-empty">You won\'t see which specific card is shown here.</div>';
+        html += '<button class="card-option opt-green" data-card="__unknown__">Showed a card (unknown which)</button>';
+      }
     }
 
     html += '<button class="secondary block modal-pass-btn" id="modalPassBtn">Pass</button>';
@@ -1126,6 +1138,17 @@
         return;
       }
     }
+    if(shower !== null && !knownCard){
+      // Even without knowing which specific card was shown, at least one of the three
+      // must still be logically possible for this player — otherwise they couldn't
+      // have shown anything at all.
+      const stillPossible = trio.some(c => facts[c] && facts[c][shower] !== "no");
+      if(!stillPossible){
+        const showerRowIdx = seq.order.indexOf(shower);
+        showWarningWithFix("⚠ Conflict: none of these three cards can logically belong to " + colName(shower) + " — all three are already known to be held elsewhere. They should have passed instead.", showerRowIdx);
+        return;
+      }
+    }
 
     state.log.push({ type:"suggestion", suggester, suspect, weapon, room, passed, repeatPassers, shower, knownCard });
     state.currentTurn = nextIdx(suggester);
@@ -1201,7 +1224,7 @@
         btn.textContent = "Remove";
         btn.addEventListener("click", () => {
           e.deleted = true;
-          afterLogEdit();
+          afterLogEdit(e.type === "skip" ? e.player : e.suggester);
         });
       }
       row.appendChild(txt); row.appendChild(btn);
