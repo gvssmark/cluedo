@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Case File — Cluedo Deduction Tracker</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#1b2430">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1151,15 +1151,18 @@
     for(const p of passed){
       const yesCards = trio.filter(c => facts[c] && facts[c][p] === "yes");
       if(!yesCards.length) continue; // ordinary pass, no conflict
-      if(state.ruleMode === "family"){
-        // Family Rules: they already hold something from this trio and are choosing
-        // to pass rather than repeat it. We trust that read of the table — it also
-        // means any OTHER card in this trio still unresolved for them must be a "no",
-        // since a legitimate family-pass implies nothing new was available to show.
+      const hasUnknown = trio.some(c => facts[c] && facts[c][p] === undefined);
+      if(state.ruleMode === "family" && !hasUnknown){
+        // Family Rules: they already hold something from this trio, but every card in
+        // it is already fully known for them (nothing left that could be new info) —
+        // a legitimate pass under the house rule, not a contradiction.
         repeatPassers.push(p);
       } else {
         const rowIdx = seq.order.indexOf(p);
-        showWarningWithFix("⚠ Conflict: " + colName(p) + ' is already known to hold "' + yesCards[0] + '" — they can\'t have passed on this suggestion' + ".", rowIdx);
+        const why = hasUnknown
+          ? ' — and they still have an undetermined card in this trio, so Family Rules can\'t apply here either.'
+          : '.';
+        showWarningWithFix("⚠ Conflict: " + colName(p) + ' is already known to hold "' + yesCards[0] + '" — they can\'t have passed on this suggestion' + why, rowIdx);
         return;
       }
     }
@@ -1302,15 +1305,8 @@
     suggestions.forEach(e => {
       const trio = [e.suspect, e.weapon, e.room];
       e.passed.forEach(p => {
-        const isRepeatPasser = (e.repeatPassers||[]).includes(p);
-        trio.forEach(card => {
-          // A legitimate family-mode repeat-pass only skips the specific card(s) already
-          // confirmed theirs (to avoid contradicting that known "yes"). Any OTHER card in
-          // the trio still gets marked "no" for them — a real family-pass means nothing
-          // new was available to show, which is itself useful information.
-          if(isRepeatPasser && facts[card][p] === "yes") return;
-          setFact(card, p, "no");
-        });
+        if((e.repeatPassers||[]).includes(p)) return; // family-mode repeat pass: no new info to record
+        trio.forEach(card => setFact(card, p, "no"));
       });
       if(e.shower !== null && e.knownCard) setFact(e.knownCard, e.shower, "yes");
     });

@@ -249,11 +249,8 @@
     log.forEach(e => {
       const trio = [e.suspect, e.weapon, e.room];
       (e.passed||[]).forEach(p => {
-        const isRepeatPasser = (e.repeatPassers||[]).includes(p);
-        trio.forEach(card => {
-          if(isRepeatPasser && facts[card][p] === "yes") return;
-          setFact(card, p, "no");
-        });
+        if((e.repeatPassers||[]).includes(p)) return; // family-mode repeat pass: no new info
+        trio.forEach(card => setFact(card, p, "no"));
       });
       if(e.shower !== null && e.shower !== undefined && e.knownCard){
         setFact(e.knownCard, e.shower, "yes");
