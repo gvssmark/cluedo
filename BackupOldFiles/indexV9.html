@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Case File — Cluedo Deduction Tracker</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#1b2430">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -851,11 +851,7 @@
   fillCardSelect(sgRoomSel, ROOMS);
 
   [sgSuspectSel, sgWeaponSel, sgRoomSel].forEach(sel=>{
-    sel.addEventListener("change", () => {
-      resetSequence();
-      renderSequence();
-      refreshCategoryLabels(computeFacts().facts);
-    });
+    sel.addEventListener("change", () => { resetSequence(); renderSequence(); });
   });
 
   sgSuggesterSel.addEventListener("change", () => { resetSequence(); renderSequence(); });
