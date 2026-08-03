@@ -1,5 +1,4 @@
 
-
 const CACHE_NAME = "case-file-cache-v1";
 const APP_SHELL = [
   "./index.html",
