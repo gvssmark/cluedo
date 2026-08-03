@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Case File — Cluedo Deduction Tracker</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <meta name="theme-color" content="#1b2430">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -114,24 +114,6 @@
   }
   select:focus, input:focus{ outline:2px solid var(--brass); outline-offset:1px; }
   select.solved-select{ border:2px solid var(--green-bright); background:#132518; color:var(--green-bright); font-weight:bold; }
-
-  .picker-trigger{
-    background:#111823; color:var(--parchment); border:1px solid var(--line); border-radius:4px;
-    padding:9px 30px 9px 9px; font-family:'Courier New',monospace; font-size:14px; font-weight:normal;
-    letter-spacing:0; text-transform:none; width:100%; text-align:left; cursor:pointer; position:relative;
-  }
-  .picker-trigger::after{
-    content:"▾"; position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--brass-bright); font-size:12px;
-  }
-  .picker-trigger:hover{ background:#161f2c; }
-  .picker-trigger.solved-select{ border:2px solid var(--green-bright); background:#132518; color:var(--green-bright); font-weight:bold; }
-  .picker-option{
-    display:block; width:100%; text-align:left; padding:12px 14px; border-radius:5px; margin-bottom:6px;
-    font-family:Georgia,serif; font-size:14.5px; font-weight:normal; letter-spacing:0; text-transform:none;
-    border:1px solid var(--line); background:#161d27; color:var(--parchment); cursor:pointer;
-  }
-  .picker-option:hover{ filter:brightness(1.2); }
-  .picker-option.picker-selected{ box-shadow: inset 0 0 0 2px var(--brass); }
   button{
     background:var(--brass); color:#1b1408; border:none; border-radius:4px; padding:10px 14px;
     font-family:'Courier New',monospace; font-size:12.5px; font-weight:bold; letter-spacing:.05em; text-transform:uppercase; cursor:pointer; transition:.15s background;
@@ -316,18 +298,15 @@
           </div>
           <div class="field">
             <label>Suspect</label>
-            <button type="button" class="picker-trigger" id="sgSuspectTrigger"></button>
-            <select id="sgSuspect" style="display:none;"></select>
+            <select id="sgSuspect"></select>
           </div>
           <div class="field">
             <label>Weapon</label>
-            <button type="button" class="picker-trigger" id="sgWeaponTrigger"></button>
-            <select id="sgWeapon" style="display:none;"></select>
+            <select id="sgWeapon"></select>
           </div>
           <div class="field">
             <label>Room</label>
-            <button type="button" class="picker-trigger" id="sgRoomTrigger"></button>
-            <select id="sgRoom" style="display:none;"></select>
+            <select id="sgRoom"></select>
           </div>
         </div>
 
@@ -1615,64 +1594,21 @@
   // ---------- Master render ----------
   // Annotates each dropdown option with what's already known about that card,
   // so it's obvious at a glance which suggestions would actually produce new information.
-  function cardStatus(card, facts){
+  function annotatedLabel(card, facts){
     const allCols = state.players.map((_,i)=>i).concat([CASE]);
     const holder = allCols.find(c => facts[card][c] === "yes");
-    if(holder === undefined) return { label: card, kind: "unknown" };
-    if(holder === CASE) return { label: card + " — SOLVED (case file)", kind: "solved" };
-    return { label: card + " — known (" + colName(holder) + (holder===state.me ? ", me" : "") + ")", kind: "known" };
+    if(holder === undefined) return card;
+    if(holder === CASE) return card + " — SOLVED (case file)";
+    return card + " — known (" + colName(holder) + (holder===state.me ? ", me" : "") + ")";
   }
-
-  const OPTION_STYLES = {
-    unknown: "",
-    known: "background-color:#3a1f22; color:#e39a9a;",
-    solved: "background-color:#132518; color:#6fae80; font-weight:bold;"
-  };
-
-  const sgSuspectTrigger = document.getElementById("sgSuspectTrigger");
-  const sgWeaponTrigger = document.getElementById("sgWeaponTrigger");
-  const sgRoomTrigger = document.getElementById("sgRoomTrigger");
-  const CATEGORY_PICKERS = [
-    { sel: sgSuspectSel, trigger: sgSuspectTrigger, cat: CATEGORIES[0] },
-    { sel: sgWeaponSel,  trigger: sgWeaponTrigger,  cat: CATEGORIES[1] },
-    { sel: sgRoomSel,    trigger: sgRoomTrigger,    cat: CATEGORIES[2] }
-  ];
-  let lastFactsForPickers = null;
-
   function refreshCategoryLabels(facts){
-    lastFactsForPickers = facts;
-    CATEGORY_PICKERS.forEach(({ sel, trigger, cat }) => {
-      // Keep the hidden <select> in sync too (nothing else reads its option text, only .value).
-      const current = cardStatus(sel.value, facts);
-      trigger.textContent = current.label;
-      trigger.setAttribute("style", OPTION_STYLES[current.kind]);
+    const pairs = [[sgSuspectSel, CATEGORIES[0]], [sgWeaponSel, CATEGORIES[1]], [sgRoomSel, CATEGORIES[2]]];
+    pairs.forEach(([sel, cat]) => {
+      Array.from(sel.options).forEach(o => { o.textContent = annotatedLabel(o.value, facts); });
       const solved = cat.cards.some(c => facts[c][CASE] === "yes");
-      trigger.classList.toggle("solved-select", solved);
+      sel.classList.toggle("solved-select", solved);
     });
   }
-
-  function openCategoryPicker(which){
-    const picker = CATEGORY_PICKERS[which];
-    const facts = lastFactsForPickers || computeFacts().facts;
-    let html = "<h3>" + picker.cat.label.slice(0,-1) + "</h3>";
-    picker.cat.cards.forEach(card => {
-      const status = cardStatus(card, facts);
-      const selected = (sel_value => sel_value === card)(picker.sel.value);
-      html += '<button type="button" class="picker-option' + (selected ? " picker-selected" : "") + '" style="' + OPTION_STYLES[status.kind] + '" data-card="' + card + '">' + status.label + '</button>';
-    });
-    openModal(html);
-    modalBox.querySelectorAll(".picker-option").forEach(btn => {
-      btn.addEventListener("click", () => {
-        picker.sel.value = btn.dataset.card;
-        picker.sel.dispatchEvent(new Event("change"));
-        closeModal();
-      });
-    });
-  }
-
-  CATEGORY_PICKERS.forEach((p, i) => {
-    p.trigger.addEventListener("click", () => openCategoryPicker(i));
-  });
 
   function renderAll(opts){
     opts = opts || {};
