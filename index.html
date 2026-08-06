@@ -22,7 +22,8 @@
     --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
-  html,body{margin:0;padding:0;}
+  html,body{margin:0;padding:0;-webkit-overflow-scrolling:touch;
+      overscroll-behavior-y:contain;}
   body{
     background: radial-gradient(ellipse at top left, #23303f 0%, #161d27 55%, #10151d 100%);
     color:var(--parchment); font-family: Georgia, 'Times New Roman', serif;
