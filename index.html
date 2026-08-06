@@ -23,7 +23,9 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   html,body{margin:0;padding:0;-webkit-overflow-scrolling:touch;
-      overscroll-behavior-y:contain;}
+      overscroll-behavior-y:none; /* fully disables iOS rubber-band bounce & Android pull-to-refresh (contain still allowed a local bounce, which flashed blank white) */
+      background:#10151d; /* matches the darkest stop of the body gradient, in case any bounce sliver still shows through on older browsers */
+      height:100%;}
   body{
     background: radial-gradient(ellipse at top left, #23303f 0%, #161d27 55%, #10151d 100%);
     color:var(--parchment); font-family: Georgia, 'Times New Roman', serif;
